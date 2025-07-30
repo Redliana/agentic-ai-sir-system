@@ -34,6 +34,10 @@ class AnalyzerAgent():
         result = self.llm.generate(prompt=prompt, system=system)
         self.memory.save(f"analysis_result_for_{question}", result)
         return result
+    
+    def receive_message(self, message):
+        # Message between agents
+        print("Analyzer received:", message)
 
     def summarize_data(self, df):
         summary = {

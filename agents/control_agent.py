@@ -33,13 +33,4 @@ class ControlAgent:
         self.memory.save("sim_complete_msg", response)
         return response
 
-    def ask_analysis_question(self, user_question):
-        previous_qs = self.memory.get("analysis_questions", [])
-        previous_qs.append(user_question)
-        self.memory.save("analysis_questions", previous_qs)
-
-        prompt = f"The user asked: '{user_question}'. Let's analyze the simulation data to answer."
-        response = self.llm.generate(prompt)
-        self.memory.save(f"response_to_{user_question}", response)
-        return response
     
