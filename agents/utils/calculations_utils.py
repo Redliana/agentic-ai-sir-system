@@ -1,8 +1,6 @@
 # utils/summary_utils.py
 
 import pandas as pd
-import yaml
-from pathlib import Path
 
 def calculate_peak_infection(df_agent_logs: pd.DataFrame) -> dict:
     df_agent_logs = pd.read_csv(df_agent_logs)

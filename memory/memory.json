@@ -16,7 +16,7 @@
     "runs": 5
   },
   "output_directory": "logs",
-  "sim_complete_msg": "Sure, let me check the status of the SIR model simulation. It appears that the simulation has been completed. Shall we proceed with analyzing the results? If you'd like, I can provide a summary of key findings, such as the final number of susceptible, infected, and recovered individuals, the peak of infections, the reproduction number R0, and the basic reproduction number R_effective. Please let me know if you're interested in seeing these results or if you'd like to see something specific.",
+  "sim_complete_msg": "Sure, here is a possible way to ask the user:\n\n\"The SIR model simulation has finished. Would you like to proceed with analyzing the results? If yes, please type 'Yes' or 'Analyze Results'. If no, type 'No' or 'Quit'.\"",
   "last_analysis_question": "What was peak infection?",
   "analysis_result_for_What would you like to analyze? ": "I'm not sure how to answer that yet.",
   "analysis_result_for_What is the population size? ": "I'm not sure how to answer that yet.",

@@ -52,7 +52,7 @@ def get_analysis_question_node(state: State):
     print("Type of state:", type(state))
     print("State contents:", state)
     # Simulated input for now
-    question = "What was the average infection duration?"
+    question = "What was the peak infection?"
     state["user_question"] = question
     return state
 
