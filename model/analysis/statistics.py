@@ -5,7 +5,6 @@ import csv
 from datetime import datetime
 import numpy as np
 
-from utils.db_loader import Database as db 
 
 def get_peak_sir_stats(logs):
     """Get peak values and times for S, I, and R for each run."""

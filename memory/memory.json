@@ -16,7 +16,7 @@
     "runs": 5
   },
   "output_directory": "logs",
-  "sim_complete_msg": "Sure! Here is a message that you could use:\n\n\"The SIR model simulation has now finished. Would you like to analyze the results and view the final outcomes? Please respond with 'yes' or 'no'.\"",
+  "sim_complete_msg": "Sure, let's check if the user is ready to analyze the results of the SIR model simulation. Here's a message that could be used:\n\n\"The SIR model simulation has now concluded. Are you ready to dive into the results and explore the dynamics of the disease spread within the population? Please type 'yes' or 'no'.\"",
   "last_analysis_question": "What was peak infection?",
   "analysis_result_for_What would you like to analyze? ": "I'm not sure how to answer that yet.",
   "analysis_result_for_What is the population size? ": "I'm not sure how to answer that yet.",
