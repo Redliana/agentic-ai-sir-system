@@ -6,7 +6,7 @@ import yaml
 from pathlib import Path
 
 from model.utils.config_loader import load_config
-from agents.utils.summary_utils import calculate_peak_infection, calculate_avg_days_infected, get_model_parameters
+from agents.utils.calculations_utils import calculate_peak_infection, calculate_avg_days_infected, get_model_parameters
 
 class AnalyzerAgent():
     def __init__(self, memory, model="mistral"):
