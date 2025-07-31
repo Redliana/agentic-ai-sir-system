@@ -52,7 +52,7 @@ def get_analysis_question_node(state: State):
     print("Type of state:", type(state))
     print("State contents:", state)
     # Simulated input for now
-    question = "How many agents recovered?"
+    question = "What was the average infection duration?"
     state["user_question"] = question
     return state
 
@@ -60,9 +60,10 @@ def analyze_node(state: State):
     print("\nDEBUG: Received state in analyze_node:")
     print("Type of state:", type(state))
     print("State contents:", state)
-    analyzer.load_data("model/agent_states.csv", "model/infection_events.csv")
+    # TODO: make these variables, not hard-coded (should be saved to log file)
+    analyzer.load_data("model/agent_states.csv", "model/infection_events.csv", "model/config.yaml")
     analyzer.load_column_descriptions("agents/utils/data_desc_dict.yaml")
-    answer = analyzer.analyze(state["user_question"])
+    answer = analyzer.analyze("model/agent_states.csv", "model/infection_events.csv", "model/config.yaml", state["user_question"])
     print(f"\nAnalysis Result: {answer}")
     return state, END
 
