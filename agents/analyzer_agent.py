@@ -32,6 +32,7 @@ class AnalyzerAgent():
 
         # Infection peak detection
         if "infection peak" in user_question.lower():
+            df_agents = pd.read_csv("path/to/agent_logs.csv")
             summary_data["peak_infection_times"] = calculate_peak_infection(df_agents)
 
         # Average infection duration
