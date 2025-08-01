@@ -3,7 +3,7 @@
 from utils.llm_utils import OllamaLLM
 from memory.json_memory import JSONMemory
 
-class ControlAgent:
+class UIAgent:
     def __init__(self, memory, model="mistral", test_mode=False):
         self.llm = OllamaLLM(model)
         self.memory = memory

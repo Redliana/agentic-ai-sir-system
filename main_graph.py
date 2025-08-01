@@ -3,7 +3,7 @@
 # Import libraries
 from memory.json_memory import JSONMemory
 from langgraph.graph import StateGraph, END
-from agents.control_agent import ControlAgent
+from agents.ui_agent import UIAgent
 from agents.runner_agent import RunnerAgent
 from agents.analyzer_agent import AnalyzerAgent
 
@@ -11,7 +11,7 @@ from agents.analyzer_agent import AnalyzerAgent
 memory = JSONMemory()
 
 # Initialize agents
-control = ControlAgent(memory=memory, test_mode=True)
+control = UIAgent(memory=memory, test_mode=True)
 runner = RunnerAgent(memory=memory)
 analyzer = AnalyzerAgent(memory=memory)
 
