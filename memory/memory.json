@@ -16,7 +16,7 @@
     "runs": 5
   },
   "output_directory": "logs",
-  "sim_complete_msg": "Hello! The simulation based on the SIR model has now finished. Would you like to analyze the results and understand the outcomes of the simulation? Please respond with \"Yes\" or \"No\".\n\nHere is a brief summary:\n\n1. Number of Susceptible individuals at the end of the simulation.\n2. Number of Infected individuals at the end of the simulation.\n3. Number of Recovered individuals at the end of the simulation.\n4. The total number of simulations run.\n5. The average number of new infected cases per day (R_t) during the simulation period.\n6. Visualizations to help interpret the data and trends over time.\n\nIf you choose to analyze the results, I'll provide you with more detailed information for each of these points. Let me know if you're interested!",
+  "sim_complete_msg": "Hello! The simulation of the SIR model is now complete. Would you like to analyze the results? If yes, we can visualize the number of Susceptible, Infected, and Recovered individuals over time. Additionally, we can calculate relevant metrics such as the final size of the outbreak, basic reproduction number, and time needed for the disease to die out. Let me know if you'd like to proceed with the analysis.",
   "last_analysis_question": "What was peak infection?",
   "analysis_result_for_What would you like to analyze? ": "I'm not sure how to answer that yet.",
   "analysis_result_for_What is the population size? ": "I'm not sure how to answer that yet.",

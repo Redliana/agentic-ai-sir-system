@@ -150,14 +150,18 @@ class Model:
         self.agents = self._initialize_agents()
         self.groups = self._initialize_groups()
 
+        self.agent_state_logs = []
+        self.infection_event_logs = []
+
+        self.agent_lookup = {agent.unique_id: agent for agent in self.agents}
+
     def _initialize_agents(self):
         """Initialize agents with unique IDs and one infectious agent."""
         agents = []
-        infected_agent_id = random.randint(0, self.num_agents - 1)
+        infected_id = random.randint(0, self.num_agents - 1)
         for i in range(self.num_agents):
-            state = "I" if i == infected_agent_id else "S"
-            agent = Agent(unique_id=i, dState=state)
-            if state == "I":
+            agent = Agent(i, dState="I" if i == infected_id else "S")
+            if i == infected_id:
                 agent.infection_step = 0
             agents.append(agent)
         return agents
@@ -174,24 +178,13 @@ class Model:
         Returns:
             list: List of Group objects.
         """
-        random.shuffle(self.agents)
         agents = self.agents[:]
-        groups = []
-        group_id = 0
+        random.shuffle(agents)
+        groups, group_id = [], 0
 
         while agents:
-            # Sample group size from exponential and clip it
-            group_size = int(random.expovariate(lambda_param))
-            group_size = max(min_size, min(group_size, max_size))
-            if group_size > len(agents):
-                group_size = len(agents)
+            group_size = min(len(agents), max(min_size, min(int(random.expovariate(lambda_param)), max_size)))
             group_agents = agents[:group_size]
-            # Assign group_id to each agent and collect their ids
-            agent_ids = []
-            for agent in group_agents:
-                agent.group_id = group_id
-                agent_ids.append((agent.unique_id, agent.dState))
-            # Create group
             group = Group(group_agents, group_id)
             groups.append(group)
             agents = agents[group_size:]
@@ -203,72 +196,49 @@ class Model:
         Log agent states per times step.
         Logging to memory.
         """
-        self.memory_agent_state_logs = []
+        self.agent_state_logs = []
 
         for agent in self.agents:
-            self.memory_agent_state_logs.append({
+            self.agent_state_logs.append({
                 "run_id": self.run_id,
                 "step": step,
                 "agent_id": agent.unique_id,
                 "state": agent.dState
             })
-            agent_state_df = pd.DataFrame(self.memory_agent_state_logs)
-            return agent_state_df
+        agent_state_df = pd.DataFrame(self.agent_state_logs)
+        print(agent_state_df.head(10))
 
     def _log_infections(self, step):
         """
         Log infection events with infector agents and infected agents per time step
         Logging to memory.
         """
-        self.infection_event_logs = []
-
         for agent in self.agents:
+            self.agent_state_logs.append({
+                "run_id": self.run_id, "step": step,
+                "agent_id": agent.unique_id, "state": agent.dState
+            })
+
             if agent.dState == "I" and agent.infection_step == step:
-                infector_id = agent.infected_by
-                infector = next((a for a in self.agents if a.unique_id == infector_id), None)
-
-                infected_group_id = getattr(agent, "group_id", None)
-                infector_group_id = getattr(infector, "group_id", None) if infector else None
-
-                for agent in self.agents:
-                    if agent.dState == "I" and agent.infection_step == step:
-                        infector_id = agent.infected_by
-                        infector = next((a for a in self.agents if a.unique_id == infector_id), None)
-
-                        if infector is not None:
-                            duration = step - infector.infection_step
-                            infector_group_id = getattr(infector, "group_id", None)
-                            infected_group_id = getattr(agent, "group_id", None)
-
-                            self.infection_event_logs.append({
-                                "run_id": self.run_id,
-                                "step": step,
-                                "infector_id": infector.unique_id,
-                                "infector_group_id": infector_group_id,
-                                "infected_id": agent.unique_id,
-                                "infected_group_id": infected_group_id,
-                                "duration": duration
-                            })
-                        else:
-                            self.infection_event_logs.append({
-                                "run_id": self.run_id,
-                                "step": step,
-                                "infector_id": None,
-                                "infector_group_id": None,
-                                "infected_id": agent.unique_id,
-                                "infected_group_id": getattr(agent, "group_id", None),
-                                "duration": None
-                            })
+                infector = self.agent_lookup.get(agent.infected_by)
+                self.infection_event_logs.append({
+                    "run_id": self.run_id,
+                    "step": step,
+                    "infector_id": infector.unique_id if infector else None,
+                    "infector_group_id": getattr(infector, "group_id", None) if infector else None,
+                    "infected_id": agent.unique_id,
+                    "infected_group_id": getattr(agent, "group_id", None),
+                    "duration": step - infector.infection_step if infector else None
+                })
         infection_event_df = pd.DataFrame(self.infection_event_logs)
-        return infection_event_df
+        print(infection_event_df.head(10))
     
     def step(self, step):
         """Run a single simulation step."""
         for group in self.groups:
             group.update(self.environment, step)
         self._log_infections(step)
-        self.groups = self._initialize_groups()  # Shuffle groups after each step
-        self._log_agent_states(step)
+        self.groups = self._initialize_groups()
     
     def run(self):
         """Run the simulation and log SIR counts."""
@@ -278,35 +248,15 @@ class Model:
 # === Main ===
 def main():
     # Load simulation configuration
-    config = load_config("utils/config.yaml")
-    # Extract simulation parameters
-    sim_config = config["simulation"]
+    config = load_config("utils/config.yaml")["simulation"]
+    seed = config["seed"]
+    n_runs = 30  # Number of runs (can also be added to the YAML file if needed)
 
-    nRuns = 30  # Number of runs (can also be added to the YAML file if needed)
-    num_agents = sim_config["num_agents"]
-    num_steps = sim_config["num_steps"]
-    num_contacts = sim_config["num_contacts"]
-    infection_prob = sim_config["infection_prob"]
-    infection_duration = sim_config["infection_duration"]
-    recovery_prob = sim_config["recovery_prob"]
-    seed = sim_config["seed"]
-
-    #all_logs = []
-
-    for run_id in range(nRuns):
-        environment = Environment(infection_prob, infection_duration, recovery_prob)
-        model = Model(num_agents, num_steps, num_contacts, environment, seed + run_id, run_id)
+    for run_id in range(n_runs):
+        env = Environment(config["infection_prob"], config["infection_duration"], config["recovery_prob"])
+        model = Model(config["num_agents"], config["num_steps"], config["num_contacts"], env, seed + run_id, run_id)
         model.run()
-        #all_logs.append(np.array(model.sir_log))
-        print(f"Run {run_id + 1} completed.")
-    
-    today = date.today()
-    #plot_all_runs(all_logs, today=today, line_width=2)
-    #export_all_runs_to_csv(all_logs, output_dir="output/sir_runs")
-    
-    # TODO: export this to csv
-    #peak_stats = get_peak_sir_stats(all_logs)
-    #save_peak_stats_to_db(peak_stats, db) 
+        print(f"Run {run_id + 1} complete.")
 
 if __name__ == "__main__":
     main()
