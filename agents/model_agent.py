@@ -1,9 +1,9 @@
-# agents/runner_agent.py
+# agents/model_agent.py
 
 import os
 from sir_sim import main
 
-class RunnerAgent:
+class ModelAgent:
     def __init__(self, memory):
         self.memory = memory
         

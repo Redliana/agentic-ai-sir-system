@@ -1,4 +1,4 @@
-# agents/control_agent.py
+# agents/ui_agent.py
 
 from utils.llm_utils import OllamaLLM
 from memory.json_memory import JSONMemory

@@ -4,7 +4,7 @@
 from memory.json_memory import JSONMemory
 from langgraph.graph import StateGraph, END
 from agents.ui_agent import UIAgent
-from agents.runner_agent import RunnerAgent
+from agents.model_agent import ModelAgent
 from agents.analyzer_agent import AnalyzerAgent
 
 # Establish memory checkpointer
@@ -12,7 +12,7 @@ memory = JSONMemory()
 
 # Initialize agents
 control = UIAgent(memory=memory, test_mode=True)
-runner = RunnerAgent(memory=memory)
+runner = ModelAgent(memory=memory)
 analyzer = AnalyzerAgent(memory=memory)
 
 # Setup GraphState
