@@ -1,12 +1,10 @@
-# agents/ui_agent.py
+# agents.ui_agent.py
 
 from utils.llm_utils import OllamaLLM
-from memory.json_memory import JSONMemory
 
 class UIAgent:
-    def __init__(self, memory, model="mistral", test_mode=False):
+    def __init__(self, model="mistral", test_mode=False):
         self.llm = OllamaLLM(model)
-        self.memory = memory
         self.test_mode = test_mode
 
     def get_user_input(self):
@@ -23,5 +21,4 @@ class UIAgent:
             prompt = "Ask the user for parameters to run the SIR model."
             response = self.llm.generate(prompt)
 
-        self.memory.save("sir_user_input_prompt", response)
         return response

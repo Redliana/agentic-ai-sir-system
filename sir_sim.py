@@ -251,9 +251,9 @@ def main():
     Logging all agent states and infection events per run. 
     """
     # Load simulation configuration
-    config = load_config("utils/config.yaml")["simulation"]
+    config = load_config("config.yaml")["simulation"]
     seed = config["seed"]
-    n_runs = 30  # Number of runs (can also be added to the YAML file if needed)
+    n_runs = 3  # Number of runs (can also be added to the YAML file if needed)
 
     all_agent_state_logs = []
     all_infection_event_logs = []

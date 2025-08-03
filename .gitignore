@@ -1,2 +1,3 @@
 secrets.yaml
 logs
+vectorstore/faiss_store

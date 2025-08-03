@@ -1,19 +1,16 @@
 # main.py
 
 # Import libraries
-from memory.json_memory import JSONMemory
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph
 from agents.ui_agent import UIAgent
 from agents.model_agent import ModelAgent
-from agents.analyzer_agent import AnalyzerAgent
+from agents.rag_agent import RAGAgent
 
-# Establish memory checkpointer
-memory = JSONMemory()
 
 # Initialize agents
-control = UIAgent(memory=memory, test_mode=True)
-runner = ModelAgent(memory=memory)
-analyzer = AnalyzerAgent(memory=memory)
+control = UIAgent(test_mode=True)
+runner = ModelAgent()
+rag = RAGAgent()
 
 # Setup GraphState
 class State(dict): pass
@@ -37,25 +34,26 @@ def get_analysis_question_node(state: State):
     state["user_question"] = question
     return state
 
-def analyze_node(state: State):
-    # TODO: make these variables, not hard-coded (should be saved to log file)
-    answer = analyzer.analyze("logs/all_agent_logs.csv", "logs/all_infection_logs.csv", state["user_params"], state["user_question"])
-    print(f"\nAnalysis Result: {answer}")
-    return state, END
+def retrieve_and_generate_node(state: State):
+    query = state["user_question"]
+    response = rag.run(query)
+    state["rag_response"] = response
+    print(f"\nRAG Response: {response}")
+    return state
 
 # Build the graph
 graph_builder = StateGraph(State)
 graph_builder.add_node("control_prompt", control_prompt_node)
 graph_builder.add_node("run_sim", run_sim_node)
 graph_builder.add_node("get_analysis_question", get_analysis_question_node)
-graph_builder.add_node("analyze", analyze_node)
+graph_builder.add_node("retrieve_and_generate", retrieve_and_generate_node)
 
 #Transitions
 graph_builder.set_entry_point("control_prompt")
 graph_builder.add_edge("control_prompt", "run_sim")
 graph_builder.add_edge("run_sim", "get_analysis_question")
-graph_builder.add_edge("get_analysis_question", "analyze")
-graph_builder.set_finish_point("analyze")
+graph_builder.add_edge("get_analysis_question", "retrieve_and_generate")
+graph_builder.set_finish_point("retrieve_and_generate")
 
 graph = graph_builder.compile()
 
