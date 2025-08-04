@@ -6,7 +6,7 @@ class ReporterAgent:
     def __init__(self, model="mistral"):
         self.llm = OllamaLLM(model)
 
-    def summarize_results(self, user_question: str, analysis_results: dict) -> str:
+    def report(self, user_question: str, analysis_results: dict) -> str:
         # Construct the LLM prompt
         prompt = f"""
         You are a helpful model analysis assistant.
