@@ -1,3 +1,4 @@
 secrets.yaml
 logs
-vectorstore/faiss_store
+vectorstore/faiss_store_logs
+vectorstore/faiss_store_manuals

@@ -4,6 +4,7 @@
 This script embeds a FAISS vectorstore with:
 - Simulation log data (CSV rows)
 - Calculation manual (plain text)
+Stores are saved seperately to support fine-tuned retrieval.
 """
 
 # Import libraries 
@@ -19,54 +20,63 @@ from langchain.schema import Document
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGS_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "logs"))
 MANUAL_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "knowledge", "calculation_manual.txt"))
-VECTORSTORE_DIR = os.path.join(BASE_DIR, "faiss_store")
+VECTORSTORE_LOGS_DIR = os.path.join(BASE_DIR, "faiss_store_logs")
+VECTORSTORE_MANUALS_DIR = os.path.join(BASE_DIR, "faiss_store_manuals")
 
-# Loading the csv files as documents
+# Loader functions
 def load_csv_as_documents(logs_dir):
     docs = []
     if not os.path.exists(logs_dir):
         raise FileNotFoundError(f"Logs directory not found: {logs_dir}")
+
     for filename in os.listdir(logs_dir):
         if filename.endswith(".csv"):
             filepath = os.path.join(logs_dir, filename)
-            print(f"📄 Loading {filepath}...")
+            print(f"Grouping and loading {filepath}...")
             df = pd.read_csv(filepath)
-            for _, row in df.iterrows():
-                row_text = ", ".join(f"{col}: {val}" for col, val in row.items())
-                doc = Document(page_content=row_text, metadata={"source": filename})
+            
+            # Group rows by run_id and step
+            grouped = df.groupby(['run_id', 'step'])
+            for (run_id, step), group_df in grouped:
+                # Turn entire group into one text blob
+                row_texts = [
+                    ", ".join(f"{col}: {val}" for col, val in row.items())
+                    for _, row in group_df.iterrows()
+                ]
+                page_content = f"Run ID: {run_id}, Step: {step}\n" + "\n".join(row_texts)
+                doc = Document(
+                    page_content=page_content,
+                    metadata={"run_id": run_id, "step": step, "source": filename}
+                )
                 docs.append(doc)
     return docs
 
-# Loading the calculation manaual as a document
-def load_manual_as_document(path):
+def load_manual_as_documents(path):
+    """Load knowledge manual as document"""
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Calculation manual not found: {path}")
-    print(f"📘 Loading manual: {path}")
+        raise FileNotFoundError(f"Manual not found: {path}")
+    print(f"Loading manual: {path}")
     loader = TextLoader(path)
     return loader.load()
 
-# Combine and embed all documents
-def build_and_save_vectorstore():
-    csv_docs = load_csv_as_documents(LOGS_DIR)
-    manual_docs = load_manual_as_document(MANUAL_PATH)
-
-    all_docs = csv_docs + manual_docs
-
-    # Split for better embedding performance
+# Builder functions
+def build_vectorstore(docs, out_dir):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    split_docs = splitter.split_documents(all_docs)
-
-    # Setup embedding model
+    split_docs = splitter.split_documents(docs)
     embedding = OllamaEmbeddings(model="nomic-embed-text")
-
-    # Build FAISS store
-    print("Embedding documents...")
     vectorstore = FAISS.from_documents(split_docs, embedding)
+    os.makedirs(out_dir, exist_ok=True)
+    vectorstore.save_local(out_dir)
+    print(f"Saved vectorstore to: {out_dir}")
 
-    # Save vectorstore
-    os.makedirs(VECTORSTORE_DIR, exist_ok=True)
-    vectorstore.save_local(VECTORSTORE_DIR, index_name="index")
-    print(f"FAISS vectorstore saved to: {VECTORSTORE_DIR}")
+def build_and_save_vectorstores():
+    print("\nEmbedding simulation logs...")
+    csv_docs = load_csv_as_documents(LOGS_DIR)
+    build_vectorstore(csv_docs, VECTORSTORE_LOGS_DIR)
+
+    print("\nEmbedding calculation manual...")
+    manual_docs = load_manual_as_documents(MANUAL_PATH)
+    build_vectorstore(manual_docs, VECTORSTORE_MANUALS_DIR)
 
 if __name__ == "__main__":
-    build_and_save_vectorstore()
+    build_and_save_vectorstores()

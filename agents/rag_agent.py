@@ -1,55 +1,95 @@
 # agents.rag_agent.py
 
-from langchain_core.runnables import Runnable
+"""
+RAG agent is responsible for:
+1. retrieving relevant log data and manuals for guidance 
+2. combining these into a prompt
+3. sending the prompt to an LLM
+"""
+
+# Import libraries 
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms.ollama import Ollama
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-import os
+from langchain_core.runnables import Runnable
+
+from utils.extractors import extract_structured_data
+from utils.math_tools import calculate_peak_infection
 
 class RAGAgent:
-    def __init__(self, vectorstore_dir: str = "vectorstore/faiss_store"):
-        
-        # === Load Vectorstore ===
-        if not os.path.exists(os.path.join(vectorstore_dir, "index.faiss")):
-            raise FileNotFoundError(f"FAISS index not found in: {vectorstore_dir}")
+    def __init__(
+            self,
+            logs_store_dir="vectorstore/faiss_store_logs",
+            manuals_store_dir="vectorstore/faiss_store_manuals"
+        ):
 
-        self.vectorstore = FAISS.load_local(
-            folder_path=vectorstore_dir,
-            embeddings=OllamaEmbeddings(model="nomic-embed-text"),
+        self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        self.llm = Ollama(model="mistral")
+
+        # Load FAISS vectorstores
+        # Load the logged data document
+        self.logs_store = FAISS.load_local(
+            folder_path=logs_store_dir,
+            embeddings=self.embeddings,
+            index_name="index",
+            allow_dangerous_deserialization=True
+        )
+        # Load the instruction manual document
+        self.manuals_store = FAISS.load_local(
+            folder_path=manuals_store_dir,
+            embeddings=self.embeddings,
             index_name="index",
             allow_dangerous_deserialization=True
         )
 
-        self.llm = Ollama(model="mistral")
+        # Create retrievers for both documents
+        self.logs_retriever = self.logs_store.as_retriever()
+        self.manuals_retriever = self.manuals_store.as_retriever()
 
-        # === Retriever ===
-        self.retriever = self.vectorstore.as_retriever()
-
-        # === Prompt ===
+        # Prompt with context injection
         self.prompt = ChatPromptTemplate.from_template(
             """You are a helpful AI agent analyzing epidemic simulation data.
             Use the following context to answer the user's question.
-            
+
             Context: {context}
 
             Question: {input}
-            
-            Answer:
             """
-            )
+        )
 
-        # === Combine Documents + Retrieval Chain ===
-        self.combine_docs_chain = create_stuff_documents_chain(llm=self.llm, prompt=self.prompt)
-        self.rag_chain: Runnable = create_retrieval_chain(retriever=self.retriever, combine_docs_chain=self.combine_docs_chain)
+        # Combine documents into single generation call
+        self.combine_docs_chain = create_stuff_documents_chain(
+            llm=self.llm,
+            prompt=self.prompt
+        )
 
-    def answer(self, question: str) -> str:
-        """
-        Runs RAG pipeline on the user's question.
-        Returns the answer as a string.
-        """
-        print(f"RAGAgent received question: {question}")
+        # For now, use only logs for answering data questions
+        self.rag_chain: Runnable = create_retrieval_chain(
+            retriever=self.logs_retriever,
+            combine_docs_chain=self.combine_docs_chain
+        )
+
+    def answer(self, question: str, run_math: bool = False) -> str:
         result = self.rag_chain.invoke({"input": question})
+
+        # Get retrieved docs
+        raw_docs = result["context"]
+        doc_texts = [doc.page_content for doc in raw_docs]
+
+        if not run_math:
+            return result["answer"]
+
+        # Extract structured data
+        structured_data = extract_structured_data(doc_texts)
+        if not structured_data:
+            return "I couldn't extract structured data from the logs."
+
+        # Example tool: calculate peak infection
+        if "peak infection" in question.lower():
+            return calculate_peak_infection(structured_data)
+
+        # Default fallback
         return result["answer"]
