@@ -39,7 +39,7 @@ def analyze_node(state: State):
     state["analysis_result"] = result
     return state
 
-def report_node(state: State):
+def report_results_node(state: State):
     question = state["user_question"]
     result = state["analysis_result"]
     response = reporter.report(question, result)
@@ -60,19 +60,18 @@ def exit_node(state: State):
 # Build LangGraph
 graph_builder = StateGraph(State)
 
+# Build nodes
 graph_builder.add_node("user_input", user_input_node)
 graph_builder.add_node("run_model", run_model_node)
 graph_builder.add_node("ask_analysis_question", ask_analysis_question_node)
 graph_builder.add_node("analyze", analyze_node)
-graph_builder.add_node("report", report_node)
+graph_builder.add_node("report_results", report_results_node)
 graph_builder.add_node("fallback", fallback_node)
 graph_builder.add_node("exit", exit_node)
 
-# Entry
+# Build transitions
 graph_builder.set_entry_point("user_input")
 
-
-# Conditional routing using intent classifier
 graph_builder.add_conditional_edges(
     "user_input",
     route_by_intent,
@@ -83,14 +82,10 @@ graph_builder.add_conditional_edges(
         "unknown": "fallback"
     }
 )
-
-# Define transitions
 graph_builder.add_edge("run_model", "user_input")
 graph_builder.add_edge("ask_analysis_question", "analyze")
-graph_builder.add_edge("analyze", "report")
-graph_builder.set_finish_point("report")
-
-graph_builder.set_entry_point("user_input")
+graph_builder.add_edge("analyze", "report_results")
+graph_builder.set_finish_point("report_results")
 
 graph = graph_builder.compile()
 

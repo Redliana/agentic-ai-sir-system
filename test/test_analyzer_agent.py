@@ -8,7 +8,6 @@ sys.path.append(ROOT_DIR)
 
 from agents.analyzer_agent import AnalyzerAgent
 
-
 if __name__ == "__main__":
     # ✅ Path to your infection logs
     logs_path = "logs/all_agent_logs.csv"
