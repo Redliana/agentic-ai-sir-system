@@ -35,8 +35,8 @@ def get_analysis_question_node(state: State):
     return state
 
 def retrieve_and_generate_node(state: State):
-    query = state["user_question"]
-    response = rag.run(query)
+    question = state["user_question"]
+    response = rag.answer(question)
     state["rag_response"] = response
     print(f"\nRAG Response: {response}")
     return state

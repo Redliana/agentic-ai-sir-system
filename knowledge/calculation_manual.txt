@@ -1,0 +1,281 @@
+# Epidemic Simulation Calculation Manual
+
+This manual provides knowledge of epidemic simulation models and provides step-by-step instructions for analyzing tabular epidemic simulation data.
+Each entry describes how to perform a specific type of calculation using columns like run_id, step, agent_id, and state.
+
+---
+
+## Model Education
+
+### There are a few things you should know about the model, for context, in case users ask:
+1. The model we are running is a compartmental model which is used to simulate how populations move between different states.
+2. The specific model we are exploring is called an SIR model, it is commonly used in epidemiology.
+3. The S, I, and R represent Susceptible, Infectious, and Recovered individuals, respectively.
+4. The model simulates how agents in S, I, and R states evolve over time steps, thus this is a dynamic model.
+5. The SIR model is a simplified representation of disease transmission, but it provides a fundamental framework for understanding how diseases spread and how interventions like vaccination or quarantine can affect the course of an epidemic. 
+
+---
+
+## Model Assumptions
+
+1. We assume perfect mixing in-between agents such that agents are perfectly mixed into groups.
+2. Agents move randomly between groups each during each timestep of the simulation.
+2. Susceptible agents can only become infected by coming in contact with infected agents.
+3. Model parameters are given by the user and they are consistent across model runs.
+4. This is a stochastic which means this model has randomness added to it. This makes the model more realistic.
+
+---
+
+## Definitions
+
+### In the data you are analyzing, you will need to know what these terms mean:
+
+- `step`: A single timestep in the simulation. We use this metric to track time in the simulation.
+- `run_id`: A unique identifier for each simulation run where each run_id simulates a series of steps. We use this metric to track simulation runs.
+- `agent_id`: A unique agent participating in the simulation. We use this metric to identify agents in a simulation.
+- `state`: The current disease state of an agent. We use this metric to determine the current disease state of an agent. This state can be:
+    - S: Susceptible. This means the agent is not infected with the disease but is susceptible to infection if the agent comes in contact with an infected agent.
+    - I: Infected. This means the agent is infected with the disease and can transmit the disease to susceptible agents.
+    - R: Recovered. This means the agent is recovered from the infection.
+- `infector_agent_id`: A unique identifier of an infected agent that transmits the infection to a susceptible agent.
+- `infector_group_id`: A unique identifier of the group where infection spread from one infected agent to one or more susceptible agent.
+- `infected_agent_id`: A unique identifier of the susceptible agent that got infected by an infected agent.
+- `infected_group_id`: A unique identifier of the group where infection spread from one infected agent to one or more susceptible agents.
+- `lapsed_infection_time`: The total amount of timesteps in the simulation that the infected agent has been infected with the disease.
+
+---
+
+1. How to Calculate an Average (Mean)
+
+Steps:
+1. Receive a list of numerical values.
+2. Sum all the values in the list.
+3. Count how many values are in the list.
+4. Divide the total sum by the count.
+   Formula: average = total / count
+
+Example:
+For the values [3, 5, 7, 10]:
+- total = 25
+- count = 4
+- average = 25 / 4 = 6.25
+
+---
+
+2. How to Detect When Peak Infection Occurs
+
+Use this calculation description to guide you as you answer the following user questions:
+- "when did peak infection occur?" ← Users are asking about time, so your answer should be a step value.
+- "at what step did peak infection occur?" ← Users are asking about time, so your answer should be a step value.
+
+Goals:
+Find the most common timestep (`step`) occurances where the number of infected agents (`state` = 'I') is highest for every `run_id` instance.
+
+Steps:
+1. Group the data by `run_id` and `step`.
+2. For each group, count how many agents are in state I.
+3. Track the maximum count of I per `run_id`.
+4. For each `run_id`, track which `step` occurs most frequently for the maximum count of I.
+5. Return the most frequently occuring step(s).
+
+Example:
+run_id: 1
+step 0: 10 infected
+step 1: 22 infected ← peak
+step 2: 19 infected
+
+run_id: 2
+step 0: 9 infected
+step 1: 20 infected ← peak
+step 2: 18 infected
+
+run_id: 3
+step 0: 11 infected
+step 1: 20 infected
+step 2: 21 infected ← peak
+
+In this example, the data for runs 1 and 2 indicates that the peak infection occured at step 1 for both runs. 
+In run 3, the peak infection occured at step 2.
+This means that peak infection occured at step 1 for run 1 and run 2. It occured at step 2 for run 3.
+Thus, the most frequent steps where peak infection occured would be step 1.
+The correct answer would be step 1.
+
+---
+
+3. How to Detect What the Peak Infection Number Was
+
+Use this calculation description to guide you as you answer the following user questions:
+- "what was the peak infection?" ← Users are asking about the number of infected agents, so your answer should be in terms of infected agents.
+- "what was the average peak infection?" ← Users are asking about the number of infected agents, so your answer should be in terms of infected agents.
+
+Goals:
+Calculate the average number of infected agents during peak infection times where the number of infected agents (`state` = 'I') is highest for every `run_id` instance.
+
+Steps:
+1. Group the data by `run_id` and `step`.
+2. For each group, count how many agents are in state I.
+3. Track the maximum count of I per `run_id`.
+4. Count the number of `run_id` that you are tracking.
+5. Add the maximum count values per `run_id` to create a sum of maximum_infected_agents.
+6. Divide maximum_infected_agents by the number of `run_id` that you are tracking: average_peak_infected_agents = maximum_infected_agents / number of runs.
+7. Return average_peak_infected_agents.
+
+Example:
+run_id: 1
+step 0: 10 infected
+step 1: 22 infected ← peak
+step 2: 19 infected
+
+run_id: 2
+step 0: 9 infected
+step 1: 20 infected ← peak
+step 2: 18 infected
+
+run_id: 3
+step 0: 11 infected
+step 1: 20 infected
+step 2: 21 infected ← peak
+
+In this example, the data for run 1 indicates that the maximum infection event occured at step 1 with 22 infected agents.
+The data for run 2 indicates that the maximum infection event occured at step 1 with 20 infected agents.
+The data for run 3 indicates that the maximum infection event occured at step 2 with 21 infected agents.
+Thus, the sum of maximum infected agents is: 22 + 20 + 21 = 63
+You have 3 runs.
+So, the average number of infected agents is: 63/3 = 21
+Thus, the peak infection amount was 21 agents.
+The correct answer would be 21 infected agnents. 
+
+Note: if this final answer has a decimal place, such as: 21.4, please round the answer.
+Example: 
+- 21.4 would round to 21.
+- 21.5 would round to 22.
+
+---
+
+4. How to Calculate Infection Rate at a Step
+
+Use this calculation description to guide you as you answer the following user questions:
+- "what was the infection rate at step N?"
+Note: N is a placeholder for whichever step a user may ask about. This is the step you will use to filter as outlined in Step 1 below.
+
+Goal:
+Calculate what portion of agents are infected during a single timestep.
+
+Steps:
+1. Filter the data to a single `step` and `run_id`.
+2. Count total agents at that step.
+3. Count how many are in `state` I.
+4. Calculate: infection_rate = infected / total
+5. Return infection_rate
+
+---
+
+5. How to Calculate Average Infection Rate
+
+Use this calculation description to guide you as you answer the following user questions:
+- "what was the average infection rate?"
+- "what was the infection rate?"
+
+Goal:
+Calculate the average infection rate for all simulation runs.
+
+Steps:
+1. Filter the data for each unique combination of `step` and `run_id`.
+2. Track each `step` and `run_id` as a group.
+3. Count total agents for each group.
+4. Count how many agents are in `state` I for each group.
+5. For each group, calculate: infection_rate = infected / total.
+6. Add the infection_rate for each group as a sum infection_rate.
+7. Divide the sum infection_rate by the total number of groups: average_infection_rate = infection_rate / total number of groups.
+6. Return average_infection_rate.
+
+---
+
+6. How to Measure Agent Infection Duration
+
+Use this calculation description to guide you as you answer the following user questions:
+- "how long did the infection last?"
+- "what was the duration of the infection?"
+- "how long were agents infected for?"
+- "how long were agents sick for?"
+
+Goal:
+Find how long a population stays infected.
+
+Steps:
+1. For a given `run_id`, find all steps where at least one agent is in `state` I.
+2. Identify the first step with infection.
+3. Identify the last step with infection.
+4. Calculate: duration = last_step - first_step + 1.
+5. Return duration.
+
+---
+
+7. How to Group Data by Run and Step
+
+Goal:
+Prepare the data to summarize infection counts by time.
+
+Steps:
+1. Group the data by both `run_id` and `step`.
+2. Within each group, count agents by `state`.
+3. Use: .groupby(['run_id', 'step'])['state'].value_counts().
+
+---
+
+8. How to Estimate Basic Reproduction Number (R₀)
+
+Use this calculation description to guide you as you answer the following user questions:
+- "how many suscpetible agents were infected?"
+
+Goal:
+Approximate how many people each infected person transmits the disease to in early stages.
+
+Steps:
+1. Focus on the early phase (first few steps) before recoveries dominate.
+2. Count the increase in infected individuals over time.
+3. Estimate R₀ using the growth rate method:  
+   R₀ ≈ 1 + (growth_rate × duration_in_infectious_state)
+4. Or use: R₀ = β / γ, if transmission (β) and recovery (γ) rates are known.
+
+Notes:
+- Requires clean early-stage data.
+- Stochasticity makes exact values noisy.
+
+---
+
+9. How to Calculate Rate of Change in Infections
+
+Use this calculation description to guide you as you answer the following user questions:
+- "how quickly is the infection spreading?"
+- "how quickly is the population recovering?"
+- "how quickly is the infection declining?"
+
+Goal:
+Measure how quickly the number of infections is increasing or decreasing.
+
+Steps:
+1. Count the number of infected agents (`state`: 'I') at each `step`.
+2. Calculate the difference in infected counts between consecutive steps.
+3. Optionally normalize per total population: delta = I[t] - I[t-1]
+
+---
+
+10. How to Compare Multiple Runs
+
+Goal:
+Evaluate trends or averages across simulation runs.
+
+Steps:
+1. Group data by `run_id` and `step`.
+2. For each run, calculate relevant metrics (e.g., peak, duration, infection_rate).
+3. Aggregate across runs to compute averages, standard deviation, or compare interventions.
+
+---
+
+Notes:
+- The data is stepwise and chronological.
+- `state` can be S (Susceptible), I (Infected), or R (Recovered).
+- Do not mix steps or runs when calculating results, `step` and `run_id` combinations are unique.
+
+End of manual.

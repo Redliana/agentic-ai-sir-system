@@ -9,7 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 # === Settings ===
 INDEX_DIR = "faiss_store"
-QUERY = "You are an expert data analysis agent. Please consider all runs when answering this question. On average, Who was the most infectious agent and how many agents did this infectious agent infect?"
+QUERY = "You are an expert data analysis agent. Please consider all runs when answering this question. When did peak infection occur?"
 
 # === Load FAISS Index ===
 embedding_model = OllamaEmbeddings(model="nomic-embed-text")
