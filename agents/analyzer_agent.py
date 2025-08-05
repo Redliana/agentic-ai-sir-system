@@ -1,7 +1,7 @@
 # agents.analyzer_agent.py
 
 import pandas as pd
-from utils.analysis_tools import calculate_peak_infection, calculate_average_total_infected, calculate_peak_infection_std
+from utils.analysis_tools import calculate_peak_infection, calculate_average_total_infected, calculate_peak_infection_std, plot_state_dynamics
 
 class AnalyzerAgent:
     def __init__(self, logs_path: str):
@@ -24,5 +24,9 @@ class AnalyzerAgent:
         if "standard deviation" in question or "std" in question:
             std_peak = calculate_peak_infection_std(self.data)
             results["std_peak_infection"] = (std_peak)
+
+        if "plot" in question.lower() or "graph" in question.lower():
+            print("📉 Generating state dynamics plot...")
+            plot_state_dynamics(self.data)
 
         return results

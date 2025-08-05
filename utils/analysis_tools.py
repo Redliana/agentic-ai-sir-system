@@ -9,6 +9,7 @@ It then returns the result to the Reporter Agent.
 # Import libraries
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import defaultdict
 
 def calculate_average_total_infected(df: pd.DataFrame) -> dict:
@@ -70,3 +71,39 @@ def calculate_peak_infection_std(df: pd.DataFrame) -> dict:
     peaks = grouped.groupby("run_id").max()
     return round(peaks.std())
 
+def plot_state_dynamics(df: pd.DataFrame):
+        """
+        Plots the SIR infection state curves for all simulation runs.
+
+        Logic:
+            For each run_id, find the agent infection states.
+
+        """
+        grouped = df.groupby(["run_id", "step", "state"]).size().reset_index(name="count")
+        pivot_df = grouped.pivot_table(index=["run_id", "step"], columns="state", values="count", fill_value=0)
+
+        # Makes the plots pretty
+        color_map = {"S": "blue", "I": "red", "R": "green"}
+        label_map = {"S": "Susceptible (S)", "I": "Infected (I)", "R": "Recovered (R)"}
+        plotted_labels = set()
+
+        # Plot for each run
+        for run_id, run_data in pivot_df.groupby(level=0):
+            run_data = run_data.droplevel(0)
+            for state in ["S", "I", "R"]:
+                label = label_map[state] if state not in plotted_labels else None
+                plt.plot(
+                    run_data.index,
+                    run_data[state],
+                    color=color_map[state],
+                    alpha=0.6,
+                    label=label
+                )
+                plotted_labels.add(state)
+
+        plt.xlabel("Step")
+        plt.ylabel("Agent Count")
+        plt.title("Epidemic State Dynamics Per Run")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
