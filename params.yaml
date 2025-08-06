@@ -1,0 +1,8 @@
+infection_duration: 3
+infection_prob: 0.3
+num_agents: 100
+num_contacts: 10
+num_runs: 3
+num_steps: 28
+recovery_prob: 0.1
+seed: 42

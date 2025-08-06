@@ -32,7 +32,6 @@ def get_model_parameters_node(state: State):
     return state
 
 def run_model_node(state: State):
-    # Default parameters for when no saved ones exist
     default_params = {
         "seed": 42,
         "num_runs": 3,
@@ -43,9 +42,7 @@ def run_model_node(state: State):
         "infection_duration": 3,
         "recovery_prob": 0.1
     }
-    # Load parameters from file or prompt the user for new ones if none exist
-    params = interface.load_params() or interface.prompt_for_parameters(default_params)
-    # Pass parameters to ModelAgent
+    params = interface.prompt_for_parameters(default_params)
     runner.run(params)
     print("[UI Agent]: Model runs are complete")
     return state

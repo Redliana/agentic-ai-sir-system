@@ -101,10 +101,10 @@ class UIAgent:
         except FileNotFoundError:
             return {}
 
-    def save_params(self):
+    def save_params(self, new_params):
         """Save the parameters to the YAML file."""
         with open(self.params_file, "w") as file:
-            yaml.dump(self.params, file, default_flow_style=False)
+            yaml.dump(new_params, file, default_flow_style=False)
 
     def get_user_params(self, prompt, default_value, value_type):
         """Get user input and validate it."""
@@ -124,7 +124,7 @@ class UIAgent:
 
         if any(keyword in params_choice.lower() for keyword in ["default", "default parameters"]):
             print("[UI Agent]: Thanks, using the default parameters to run the simulation!")
-            return 
+            new_params = default_params
         else:
             # Prompt for each parameter
             print("Please enter the following parameters:")

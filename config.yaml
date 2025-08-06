@@ -1,9 +1,0 @@
-simulation:
-  seed: 42
-  num_runs: 3
-  num_agents: 100
-  num_steps: 28
-  num_contacts: 5
-  infection_prob: 0.1
-  infection_duration: 3.0
-  recovery_prob: 0.3

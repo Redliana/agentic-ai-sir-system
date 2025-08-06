@@ -4,6 +4,7 @@
 from datetime import date
 import pandas as pd
 import random
+import yaml
 
 from utils.config_loader import load_config
 
@@ -243,22 +244,19 @@ class Model:
             print(f"running step {step}")
 
 # === Main ===
-def main():
+def main(params):
     """
     Main function to run the simulation.
     Logging all agent states and infection events per run. 
     """
-    config = load_config("config.yaml")["simulation"]
-    seed = config["seed"]
-    num_runs = config["num_runs"]
     
     all_agent_state_logs = []
 
     print("Starting main simulation loop")
-    for run_id in range(num_runs):
+    for run_id in range(params["num_runs"]):
         print(f"Starting run {run_id}")
-        env = Environment(config["infection_prob"], config["infection_duration"], config["recovery_prob"])
-        model = Model(config["num_agents"], config["num_steps"], config["num_contacts"], env, seed + run_id, run_id)
+        env = Environment(params["infection_prob"], params["infection_duration"], params["recovery_prob"])
+        model = Model(params["num_agents"], params["num_steps"], params["num_contacts"], env, params["seed"] + run_id, run_id)
         model.run()
         all_agent_state_logs.extend(model.agent_state_logs)
         print(f"Run {run_id + 1} complete.")
@@ -271,5 +269,21 @@ def main():
     return
 
 if __name__ == "__main__":
-    main()
+    default_params = {
+        "seed": 42,
+        "num_runs": 3,
+        "num_agents": 1000,
+        "num_steps": 28,
+        "num_contacts": 10,
+        "infection_prob": 0.3,
+        "infection_duration": 3,
+        "recovery_prob": 0.1
+    }
+
+    try:
+        with open("params.yaml", "r") as file:
+            params = yaml.safe_load(file)
+    except FileNotFoundError:
+        params = default_params 
+    main(params)
     
