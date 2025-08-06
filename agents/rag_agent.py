@@ -115,6 +115,12 @@ class RAGAgent:
             prompt=self.prompt
         )
 
+        # Retrieval-augmented generation chain (manuals only)
+        self.rag_chain: Runnable = create_retrieval_chain(
+            retriever=self.manuals_retriever,
+            combine_docs_chain=self.combine_docs_chain
+        )
+
     def answer(self, question: str) -> str:
         result = self.rag_chain.invoke({"input": question})
 

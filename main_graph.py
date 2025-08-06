@@ -112,7 +112,7 @@ graph_builder.add_conditional_edges(
     {
         "run": "run_model",
         "analyze": "ask_analysis_question",
-        "assumptions": "ask_assumption_question",
+        "learn": "ask_assumption_question",
         "parameters": "ask_assumption_question",
         "exit": "exit",
         "unknown": "fallback"
@@ -128,7 +128,6 @@ graph_builder.add_conditional_edges(
         "unknown": "fallback"
     }
 )
-
 
 graph_builder.add_edge("run_model", "user_input")
 graph_builder.add_edge("ask_analysis_question", "analyze")
