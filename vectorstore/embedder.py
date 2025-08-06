@@ -20,7 +20,6 @@ from langchain.schema import Document
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGS_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "logs"))
 MANUAL_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "knowledge", "calculation_manual.txt"))
-VECTORSTORE_LOGS_DIR = os.path.join(BASE_DIR, "faiss_store_logs")
 VECTORSTORE_MANUALS_DIR = os.path.join(BASE_DIR, "faiss_store_manuals")
 
 # Loader functions
