@@ -234,64 +234,41 @@ class Model:
         for group in self.groups:
             group.update(self.environment, step)
         self.log_agent_states(step)
-        self.agent_state_df = pd.DataFrame(self.agent_state_logs)
-        self.log_infections(step)
-        self.infection_df = pd.DataFrame(self.infection_event_logs)
         self.groups = self._initialize_groups()
     
     def run(self):
         """Run the simulation and log SIR counts."""
         for step in range(self.num_steps):
             self.step(step)
+            print(f"running step {step}")
 
 # === Main ===
-def main(params=None):
+def main():
     """
     Main function to run the simulation.
     Logging all agent states and infection events per run. 
     """
-    if params is None:
-        params = {
-            "seed": 42,
-            "num_runs": 3,
-            "num_agents": 1000,
-            "num_steps": 28,
-            "num_contacts": 10,
-            "infection_prob": 0.3,
-            "infection_duration": 3,
-            "recovery_prob": 0.1
-        }
-
-    # Use the parameters in your simulation logic
-    print(f"Running simulation with parameters: {params}")
-
-    seed = params["seed"]
-    num_runs = params["num_runs"]
+    config = load_config("config.yaml")["simulation"]
+    seed = config["seed"]
+    num_runs = config["num_runs"]
+    
     all_agent_state_logs = []
-    all_infection_event_logs = []
 
+    print("Starting main simulation loop")
     for run_id in range(num_runs):
-        env = Environment(params["infection_prob"], params["infection_duration"], params["recovery_prob"])
-        model = Model(params["num_agents"], params["num_steps"], params["num_contacts"], env, seed + run_id, run_id)
+        print(f"Starting run {run_id}")
+        env = Environment(config["infection_prob"], config["infection_duration"], config["recovery_prob"])
+        model = Model(config["num_agents"], config["num_steps"], config["num_contacts"], env, seed + run_id, run_id)
         model.run()
-
         all_agent_state_logs.extend(model.agent_state_logs)
-        all_infection_event_logs.extend(model.infection_event_logs)
-        
         print(f"Run {run_id + 1} complete.")
     
     # Convert to DataFrames
     agent_df = pd.DataFrame(all_agent_state_logs)
-    infection_df = pd.DataFrame(all_infection_event_logs)
-
+    # Convert to csv
     agent_df.to_csv("logs/all_agent_logs.csv", index=False)
-    infection_df.to_csv("logs/all_infection_logs.csv", index=False)
 
-    return {
-        "run_id": model.run_id,
-        "infection_logs": model.infection_df.to_dict(orient="records"),
-        "agent_state_logs": model.agent_state_df.to_dict(orient="records")
-    }
+    return
 
 if __name__ == "__main__":
     main()

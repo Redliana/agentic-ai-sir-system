@@ -77,21 +77,13 @@ from langchain_core.runnables import Runnable
 class RAGAgent:
     def __init__(
             self,
-            logs_store_dir="vectorstore/faiss_store_logs",
             manuals_store_dir="vectorstore/faiss_store_manuals"
         ):
 
         self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
         self.llm = Ollama(model="mistral")
 
-        # Load FAISS vectorstores
-        # Load the logged data document
-        self.logs_store = FAISS.load_local(
-            folder_path=logs_store_dir,
-            embeddings=self.embeddings,
-            index_name="index",
-            allow_dangerous_deserialization=True
-        )
+        # Load FAISS vectorstore
         # Load the instruction manual document
         self.manuals_store = FAISS.load_local(
             folder_path=manuals_store_dir,
@@ -101,7 +93,6 @@ class RAGAgent:
         )
 
         # Create retrievers for both documents
-        self.logs_retriever = self.logs_store.as_retriever()
         self.manuals_retriever = self.manuals_store.as_retriever()
 
         # Prompt with context injection
@@ -119,12 +110,6 @@ class RAGAgent:
         self.combine_docs_chain = create_stuff_documents_chain(
             llm=self.llm,
             prompt=self.prompt
-        )
-
-        # For now, use only logs for answering data questions
-        self.rag_chain: Runnable = create_retrieval_chain(
-            retriever=self.logs_retriever,
-            combine_docs_chain=self.combine_docs_chain
         )
 
     def answer(self, question: str) -> str:

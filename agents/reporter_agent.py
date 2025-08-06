@@ -25,8 +25,5 @@ class ReporterAgent:
         Please explain the results clearly and concisely in plain language for a general audience.
         Avoid repeating the dictionary format. Focus on summarizing key insights.
         If any values are missing, simply note that you couldn't determine the results.
-
-        If you are asked about when the outbreak ends, and you are returned 'None' for 'clearance_step', this means that the infection never subsides entirely.
-        Please explain that in a concise manner.
         """
         return self.llm.generate(prompt)

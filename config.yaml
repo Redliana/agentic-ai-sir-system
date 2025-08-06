@@ -1,5 +1,6 @@
 simulation:
   seed: 42
+  num_runs: 3
   num_agents: 100
   num_steps: 28
   num_contacts: 5

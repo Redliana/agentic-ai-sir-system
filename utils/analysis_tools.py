@@ -26,13 +26,16 @@ def calculate_average_total_infected(df: pd.DataFrame) -> dict:
    
     Averages the total number of infected agents across all runs.
     """
-    infected_totals = defaultdict(int)
-    run_ids = df["run_id"].unique()
-    for run_id in run_ids:
+    infected_counts = []
+    for run_id in df["run_id"].unique():
         run_df = df[df["run_id"] == run_id]
-        infected_agents = run_df[run_df["state"] == "I"]["agent_id"].unique()
-        infected_totals[run_id] = len(infected_agents)
-    avg_infected = round(np.mean(list(infected_totals.values())))
+        unique_infected = run_df[run_df["state"] == "I"]["agent_id"].unique()
+        count = len(unique_infected)
+        print(f"Run {run_id}: {count} agents were infected.")
+        infected_counts.append(count)
+
+    avg_infected = round(np.mean(infected_counts))
+    print(f"Average infected agents across runs: {avg_infected}")
     return avg_infected
 
 def calculate_peak_infection(df: pd.DataFrame) -> tuple:
@@ -116,55 +119,179 @@ def plot_state_dynamics(df: pd.DataFrame):
         plt.tight_layout()
         plt.show()
 
-def calculate_average_infection_time(df: pd.DataFrame) -> int:
+def calculate_infection_decline_rate(df: pd.DataFrame) -> float:
     """
-    Calculates the average duration (in steps) that agents remained infected.
-    
-    This calculation uses the infection event logs.
-    """
-    if "duration" not in df.columns:
-        raise ValueError("Expected column 'duration' not found in CSV.")
+    Calculates the average rate of decline in infections from the peak to the final step of the simulation.
+    This is done per run and averaged across all runs.
 
-    avg_duration = int(round(df["duration"].mean()))
-    return avg_duration
-
-def calculate_outbreak_resolution_timing(df: pd.DataFrame) -> dict:
-    """
-    Determines when the outbreak begins to resolve by identifying:
-    - The average step where infections begin to decline (peak)
-    - The average step when infections drop to zero (clearance)
-    
     This calculation uses the agent state log data.
     """
-    peak_steps = []
-    clearance_steps = []
+    decline_rates = []
 
     for run_id in df["run_id"].unique():
         run_df = df[df["run_id"] == run_id]
-    
-        # Count infected agents at each step
         infected_per_step = (
             run_df[run_df["state"] == "I"]
             .groupby("step")["agent_id"]
             .nunique()
             .sort_index()
         )
+
         if infected_per_step.empty:
             continue
 
-        # Step with peak infection
         peak_step = infected_per_step.idxmax()
-        peak_steps.append(peak_step)
-        # Step when infection drops to 0 *after* the peak
-        post_peak = infected_per_step[infected_per_step.index > peak_step]
-        clearance_step = post_peak[post_peak == 0].index.min()
+        final_step = infected_per_step.index.max()
 
-        if pd.notna(clearance_step):
-            clearance_steps.append(clearance_step)
+        peak_infected = infected_per_step.loc[peak_step]
+        final_infected = infected_per_step.loc[final_step]
 
-    result = {
-        "avg_peak_step": int(round(np.mean(peak_steps))) if peak_steps else None,
-        "avg_clearance_step": int(round(np.mean(clearance_steps))) if clearance_steps else None
+        # Avoid division by zero
+        step_diff = final_step - peak_step
+        if step_diff <= 0:
+            continue
+
+        rate_of_decline = (final_infected - peak_infected) / step_diff
+        decline_rates.append(rate_of_decline)
+
+    avg_decline = round(np.mean(decline_rates), 2) if decline_rates else None
+
+    return round(avg_decline * 100, 1)
+        
+
+def calculate_time_to_half_infected(df: pd.DataFrame) -> dict:
+    """
+    Calculates when half the population becomes infected.
+    Calculates per run and then averages across all runs, returning average result.
+    This calculation explains how quickly the infection spreads throughout the population.
+
+    This calculation uses the agent state log data.
+    """
+    results = {}
+    for run_id, group in df[df["state"] == "I"].groupby("run_id"):
+        total_agents = df[df["run_id"] == run_id]["agent_id"].nunique()
+        infected_by_step = group.groupby("step")["agent_id"].nunique().cumsum()
+        step_50 = infected_by_step[infected_by_step >= (0.5 * total_agents)].index.min()
+        results[run_id] = step_50 if not pd.isna(step_50) else None
+    avg_step = round(np.nanmean(list(results.values())))
+    return avg_step
+
+def calculate_recovery_rate_post_peak(df: pd.DataFrame) -> float:
+    """
+    Calculates the average recovery rate after peak infection step for each run.
+    
+    Recovery rate is defined as:
+    (# of recovered agents after peak) / (# of infected agents after peak)
+    
+    This calculation uses the agent state log data.
+    """
+    recovery_rates = []
+
+    for run_id in df["run_id"].unique():
+        run_df = df[df["run_id"] == run_id]
+        # Count infected per step and find peak
+        infected_per_step = (
+            run_df[run_df["state"] == "I"]
+            .groupby("step")["agent_id"]
+            .nunique()
+            .sort_index()
+        )
+
+        if infected_per_step.empty:
+            continue
+
+        peak_step = infected_per_step.idxmax()
+        # Infected and recovered agents after the peak
+        infected_after_peak = run_df[(run_df["state"] == "I") & (run_df["step"] > peak_step)]["agent_id"].nunique()
+        recovered_after_peak = run_df[(run_df["state"] == "R") & (run_df["step"] > peak_step)]["agent_id"].nunique()
+        
+        if infected_after_peak == 0:
+            continue 
+
+        rate = recovered_after_peak / infected_after_peak
+        recovery_rates.append(rate)
+        
+        recovery_rates_post_infection = round(np.mean(recovery_rates), 3)
+
+    return round(recovery_rates_post_infection * 100, 1)
+
+def calculate_reinfection_count(df: pd.DataFrame) -> dict:
+    """
+    Calculates how many agents were infected more than once.
+    Returns the average number of reinfected agents across all runs.
+
+    This calculation uses the agent state log data.
+    """
+    infected_agents = df[df["state"] == "I"].groupby(["run_id", "agent_id"]).size()
+    reinfected = infected_agents[infected_agents > 1]
+    total_reinfected = reinfected.groupby("run_id").size()
+    avg_reinfected = round(total_reinfected.mean())
+    return avg_reinfected
+
+def calculate_agents_never_recovered(df: pd.DataFrame) -> dict:
+    """
+    Calculates how many agents were infected during the duration of the simulation.
+    That is, how many agents never recovered.
+
+    This calculation uses the agent state log data.
+    """
+    recovered = df[df["state"] == "R"]["agent_id"].unique()
+    infected = df[df["state"] == "I"]["agent_id"].unique()
+    never_recovered = set(infected) - set(recovered)
+    return len(never_recovered)
+
+def calculate_final_state_distribution(df: pd.DataFrame) -> dict:
+    """
+    Calculates the average population distribution of S/I/R infection states at the final timestep across all runs.
+
+    This calculation uses the agent state log data.
+    """
+    final_counts = []
+
+    for run_id in df["run_id"].unique():
+        run_df = df[df["run_id"] == run_id]
+        final_step = run_df["step"].max()
+        final_df = run_df[run_df["step"] == final_step]
+        counts = final_df["state"].value_counts(normalize=False).to_dict()
+        
+        # Ensure S/I/R keys are always present
+        for state in ["S", "I", "R"]:
+            counts.setdefault(state, 0)
+
+        final_counts.append(counts)
+
+    # Average counts across all runs
+    avg_counts = {
+        "Susceptible": round(np.mean([run["S"] for run in final_counts])),
+        "Infected": round(np.mean([run["I"] for run in final_counts])),
+        "Recovered": round(np.mean([run["R"] for run in final_counts]))
     }
-    return result
-     
+    return avg_counts
+
+def calculate_infection_decrease_after_step(df: pd.DataFrame, step: int) -> dict:
+    """
+    Calculates the probability that the number of infected agents decreases after a specified step.
+    Users must specify which step they want to analyze.
+
+    This calculation uses the agent state log data.
+    """
+    infected = df[df["state"] == "I"]
+    grouped = infected.groupby(["run_id", "step"])["agent_id"].nunique().unstack(fill_value=0)
+
+    decrease_count = 0
+    total_runs = 0
+
+    for run_id, row in grouped.iterrows():
+        if step in row and (step + 1) in row:
+            total_runs += 1
+            if row[step + 1] < row[step]:
+                decrease_count += 1
+
+    prob = decrease_count / total_runs if total_runs > 0 else 0
+
+    return {
+        "step_checked": step,
+        "runs_with_decrease": decrease_count,
+        "total_valid_runs": total_runs,
+        "prob_decrease_after_step": round(prob, 3)
+    }

@@ -14,7 +14,7 @@ from agents.reporter_agent import ReporterAgent
 # Initialize agents
 interface = UIAgent()
 runner = ModelAgent()
-analyzer = AnalyzerAgent(state_logs="logs/all_agent_logs.csv", infection_logs="logs/all_infection_logs.csv")
+analyzer = AnalyzerAgent(state_logs="logs/all_agent_logs.csv")
 rag = RAGAgent()
 reporter = ReporterAgent()
 
@@ -107,6 +107,7 @@ graph_builder.add_conditional_edges(
         "run": "run_model",
         "analyze": "ask_analysis_question",
         "assumptions": "ask_assumption_question",
+        "parameters": "ask_assumption_question",
         "exit": "exit",
         "unknown": "fallback"
     }
@@ -116,6 +117,7 @@ graph_builder.add_edge("ask_analysis_question", "analyze")
 graph_builder.add_edge("analyze", "report_results")
 graph_builder.add_edge("report_results", "user_input") 
 graph_builder.add_edge("ask_assumption_question", "user_input")
+graph_builder.add_edge("fallback", "user_input")
 
 graph_builder.set_finish_point("exit")
 
