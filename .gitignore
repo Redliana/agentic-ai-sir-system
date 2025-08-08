@@ -1,5 +1,3 @@
-secrets.yaml
-logs
-vectorstore/faiss_store_logs
-vectorstore/faiss_store_manuals
-utils/params.json
+src/logs
+src/vectorstore/faiss_store_manuals
+
