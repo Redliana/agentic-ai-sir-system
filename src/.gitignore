@@ -1,2 +1,4 @@
 logs
 vectorstore/faiss_store_manuals
+utils/__pycache__
+agents/__pycache__

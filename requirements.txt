@@ -3,6 +3,7 @@ fastapi
 langchain
 langchain-community
 langgraph
+logging
 matplotlib
 pandas
 peft
