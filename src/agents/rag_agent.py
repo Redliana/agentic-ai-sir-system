@@ -7,67 +7,80 @@ RAG agent is responsible for:
 3. sending the prompt to an LLM
 """
 
-# Import libraries 
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.llms.ollama import Ollama
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain_core.runnables import Runnable
+# Import libraries
+from utils.argo_utils import run_chat, run_embeddings, run_search
 
 class RAGAgent:
     def __init__(
             self,
-            manuals_store_dir="src/vectorstore/faiss_store_manuals"
+            collection_name="sir_collections",
+            output_fields=["page_content"],
+            limit=5
         ):
+        self.collection_name = collection_name
+        self.output_fields = output_fields
+        self.limit = limit
 
-        self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
-        self.llm = Ollama(model="mistral")
-
-        # Load FAISS vectorstore
-        # Load the instruction manual document
-        self.manuals_store = FAISS.load_local(
-            folder_path=manuals_store_dir,
-            embeddings=self.embeddings,
-            index_name="index",
-            allow_dangerous_deserialization=True
-        )
-
-        # Create retrievers for both documents
-        self.manuals_retriever = self.manuals_store.as_retriever()
+        self.embedding_model = "v3small"
+        self.chat_model = "gpt4o"
 
         # Prompt with context injection
-        self.prompt = ChatPromptTemplate.from_template(
-            """You are an expert infectious disease AI agent, tasked with the responsibility of analyzing epidemic simulation data.
-            Use the following context to answer the user's question.
+        self.instructions = """
+        You are an expert infectious disease AI agent, tasked with the responsibility of analyzing epidemic simulation data.
+        Use the following context to answer the user's question.
 
-            Please answer in a concise and friendly manner, as if you were speaking to a general audience.
-            Your goal is to educate and expand understanding so please present your language in a way that aligns with this goal.
+        Please answer in a concise and friendly manner, as if you were speaking to a general audience.
+        Your goal is to educate and expand understanding so please present your language in a way that aligns with this goal.
+        """
 
-            Context: {context}
+    def generate_embeddings(self, text: str):
+        """Generate embeddings using Argo API."""
+        print(f"Generating embeddings for text: {text}")  # Debugging input
+        embeddings = run_embeddings(model=self.embedding_model, prompts=[text])
+        print(f"Embedding response: {embeddings}")  # Debugging response structure
+        if embeddings and "embeddings" in embeddings:
+            return embeddings["embeddings"]
+        else:
+            print(f"Embedding generation failed. Response: {embeddings}")  # Debugging response
+            raise ValueError("Failed to generate embeddings.")
 
-            Question: {input}
-            """
+    def search_documents(self, vector):
+        """Search for relevant documents in Milvus using Argo API."""
+        results = run_search(
+            collection=self.collection_name,
+            data=[vector],
+            output_fields=self.output_fields,
+            limit=self.limit
         )
+        if results and "results" in results:
+            return [result["page_content"] for result in results["results"]]
+        else:
+            raise ValueError("Failed to retrieve documents.")
 
-        # Combine documents into single generation call
-        self.combine_docs_chain = create_stuff_documents_chain(
-            llm=self.llm,
-            prompt=self.prompt
+    def generate_response(self, context: str, question: str):
+        """Generate response using Argo chat API."""
+        response = run_chat(
+            instructions=self.instructions,
+            model=self.chat_model,
+            prompt=f"Context: {context}\nQuestion: {question}"
         )
-
-        # Retrieval-augmented generation chain (manuals only)
-        self.rag_chain: Runnable = create_retrieval_chain(
-            retriever=self.manuals_retriever,
-            combine_docs_chain=self.combine_docs_chain
-        )
+        if response:
+            return response
+        else:
+            raise ValueError("Failed to generate response.")
 
     def answer(self, question: str) -> str:
-        result = self.rag_chain.invoke({"input": question})
+        """Answer a question using RAG pipeline."""
+        # Step 1: Generate embeddings for the question
+        question_embeddings = self.generate_embeddings(question)
 
-        # Get retrieved docs
-        raw_docs = result["context"]
-        doc_texts = [doc.page_content for doc in raw_docs]
+        # Step 2: Search for relevant documents in Milvus
+        retrieved_docs = self.search_documents(question_embeddings)
 
-        return result["answer"]
+        # Step 3: Combine retrieved documents into context
+        context = "\n".join(retrieved_docs)
+
+        # Step 4: Generate response using Argo chat API
+        answer = self.generate_response(context=context, question=question)
+
+        return answer

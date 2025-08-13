@@ -7,6 +7,7 @@ logging
 matplotlib
 pandas
 peft
+pymilvus
 requests
 torch
 transformers

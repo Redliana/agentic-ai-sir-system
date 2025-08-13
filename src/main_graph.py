@@ -1,10 +1,18 @@
 # main_graph.py
 
+"""
+Graph file for handling the structure of the Agentic AI LangChain framework:
+1. Initializing AI Agents
+2. Setting up the graph state
+3. Defining node functions
+4. Building nodes
+5. Building edges
+6. Building conditional edges (for routing user intent)
+"""
+
 # Import libraries
 import sys
-
 from langgraph.graph import StateGraph
-
 from agents.ui_agent import UIAgent
 from agents.model_agent import ModelAgent
 from agents.rag_agent import RAGAgent
