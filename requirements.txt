@@ -1,10 +1,12 @@
 datasets
 fastapi
+json
 langchain
 langchain-community
 langgraph
 logging
 matplotlib
+numpy
 pandas
 peft
 pymilvus
@@ -13,3 +15,4 @@ torch
 transformers
 unsloth
 uvicorn
+yaml

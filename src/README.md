@@ -75,3 +75,9 @@ As previously mentioned, the Control Agent is powered by an LLM. For the purpose
 
 ## Try it Yourself ##
 To get started, initialize the program with the following command: `python3 main.py`
+
+## To Activate the Virtual Environment and Packages for this Repo
+`source venv/bin/activate`
+
+## To Activate Ollama LLM for this Repo
+`ollama run mistral`

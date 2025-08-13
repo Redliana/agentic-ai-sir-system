@@ -14,7 +14,6 @@ UI Agent is responsible for:
 """
 
 # Import libraries
-import getpass
 import yaml
 # Import dependencies
 from utils.llm_utils import OllamaLLM
