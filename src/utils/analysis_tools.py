@@ -94,7 +94,8 @@ def plot_state_dynamics(df: pd.DataFrame):
         pivot_df = grouped.pivot_table(index=["run_id", "step"], columns="state", values="count", fill_value=0)
 
         # Makes the plots pretty
-        color_map = {"S": "blue", "I": "red", "R": "green"}
+        light_color_map = {"S": "#a6c8ff", "I": "#ffb3b3", "R": "#b3ffb3"}  # lighter shades
+        dark_color_map = {"S": "#005bbb", "I": "#cc0000", "R": "#009900"}  # bold average curves
         label_map = {"S": "Susceptible (S)", "I": "Infected (I)", "R": "Recovered (R)"}
         plotted_labels = set()
 
@@ -106,15 +107,25 @@ def plot_state_dynamics(df: pd.DataFrame):
                 plt.plot(
                     run_data.index,
                     run_data[state],
-                    color=color_map[state],
+                    color=light_color_map[state],
                     alpha=0.6,
-                    label=label
+                    linewidth=1
                 )
-                plotted_labels.add(state)
+        # Compute and plot the mean across runs
+        mean_df = pivot_df.groupby("step").mean()
+        for state in ["S", "I", "R"]:
+            plt.plot(
+                mean_df.index,
+                mean_df[state],
+                color=dark_color_map[state],
+                linewidth=2.5,
+                label=label_map[state]
+            )
 
+        # Labels and legend
         plt.xlabel("Step")
         plt.ylabel("Agent Count")
-        plt.title("Epidemic State Dynamics Per Run")
+        plt.title("Epidemic State Dynamics")
         plt.legend()
         plt.tight_layout()
         plt.show()
