@@ -81,10 +81,13 @@ AI agents must interact and communicate after tasks are complete to track object
    - Receives user requests and channels requests to `Control Agent`. 
    - Returns responses to user from other agents, through the `Control Agent`.
 
-A diagram to depict the employment and interaction of these agents is provided:
+
+### A diagram to depict the employment and interaction of these agents is provided:
+
 <img width="662" height="528" alt="Screenshot 2026-02-16 at 11 33 09 AM" src="https://github.com/user-attachments/assets/49b326d5-8e1d-4a82-a788-b014f2cd18c1" />
 
-Agents interact with users through the use of 'intent' functions which helps the Control Agent to direct tasks to specific agents. The high-level workflow for this logic is provided:
+### Agents interact with users through the use of 'intent' functions which helps the Control Agent to direct tasks to specific agents. The high-level workflow for this logic is provided:
+
 <img width="599" height="408" alt="Screenshot 2026-02-16 at 11 34 19 AM" src="https://github.com/user-attachments/assets/f7dcc5a2-e7b6-4921-bd78-1d264d95969f" />
 
 ## LLM Usage ##
