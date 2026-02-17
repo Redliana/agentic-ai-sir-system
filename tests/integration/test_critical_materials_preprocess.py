@@ -168,6 +168,47 @@ class TestCriticalMaterialsPreprocess(unittest.TestCase):
                 1,
             )
 
+    def test_preprocess_applies_material_casefold_and_aliases(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            corpus_root = os.path.join(tmpdir, "corpus")
+            os.makedirs(corpus_root, exist_ok=True)
+
+            csv_path = os.path.join(corpus_root, "materials.csv")
+            with open(csv_path, "w") as file:
+                file.write("material,country,quantity,unit\n")
+                file.write("Gold,United States,5,t\n")
+                file.write("Copper,United States,7,t\n")
+
+            output_dir = os.path.join(tmpdir, "out")
+            config = {
+                "corpus_root": corpus_root,
+                "output_dir": output_dir,
+                "extensions": [".csv"],
+                "preprocess": {"required_fields": ["material", "country"]},
+                "normalization": {
+                    "material_casefold": True,
+                    "material_map": {
+                        "gold": "gold, mine",
+                        "copper": "copper, mine",
+                    },
+                },
+                "outputs": {
+                    "normalized_structured_path": "staged/normalized_structured.jsonl",
+                    "ingestion_config_path": "ingestion_ready.yaml",
+                    "preprocess_report_path": "preprocess_report.json",
+                    "duplicate_manifest_path": "duplicates.json",
+                    "ocr_queue_path": "ocr_queue.txt",
+                },
+            }
+
+            result = run_preprocess_workflow(config)
+            normalized_path = result["artifacts"]["normalized_structured_path"]
+            with open(normalized_path, "r") as file:
+                rows = [json.loads(line) for line in file if line.strip()]
+
+            materials = {row.get("material") for row in rows}
+            self.assertEqual(materials, {"gold, mine", "copper, mine"})
+
 
 if __name__ == "__main__":
     unittest.main()

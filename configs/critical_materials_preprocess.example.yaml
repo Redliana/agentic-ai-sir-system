@@ -89,6 +89,7 @@ preprocess:
         stage: supply
 
 normalization:
+  material_casefold: true
   country_map:
     usa: United States
     us: United States
@@ -108,6 +109,14 @@ normalization:
   material_map:
     rare earth elements: REE
     ree: REE
+    gold: gold, mine
+    silver: silver, mine
+    copper: copper, mine
+    lead: lead, mine
+    zinc: zinc, mine
+    nickel: nickel, mine
+    tin: tin, mine
+    cobalt: cobalt, mine
   unit_map:
     t: tonnes
     metric tons: tonnes
