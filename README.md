@@ -48,9 +48,19 @@ Start by setting `active_domain: critical_materials`, then request:
 
 Run heterogeneous ingestion with:
 ```bash
-python -m domains.critical_materials.ingestion.run_ingestion --config configs/critical_materials_ingestion.example.yaml --output tmp/ingestion_manifest.json
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_ingestion --config configs/critical_materials_ingestion.example.yaml --output tmp/ingestion_manifest.json
 ```
 `.xlsx` ingestion uses `openpyxl` and `.pdf` ingestion uses `pypdf`.
+
+For large raw corpora, run preprocessing first:
+```bash
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_preprocess --config configs/critical_materials_preprocess.example.yaml
+```
+This generates:
+- `ingestion_ready.yaml` (ingestion config with deduplicated source paths)
+- `staged/normalized_structured.jsonl` (normalized structured records)
+- `ocr_queue.txt` (PDFs requiring OCR)
+- `duplicates.json` (duplicate selection decisions)
 
 ## Tests
 Run integration tests with:
