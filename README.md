@@ -69,6 +69,10 @@ Quality filtering can be configured under `normalization` in `configs/critical_m
 - `material_drop_equals`
 - `material_drop_contains`
 
+Material naming normalization can also be configured under `normalization`:
+- `material_casefold` (for case-insensitive material normalization)
+- `material_map` (for explicit alias-to-canonical mappings, for example `gold -> gold, mine`)
+
 Publish ingestion outputs to backend-ready load packages:
 ```bash
 PYTHONPATH=src python -m domains.critical_materials.ingestion.run_publish \

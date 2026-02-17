@@ -211,8 +211,12 @@ def _normalize_structured_record(record: Dict[str, Any], normalize_cfg: Dict[str
         }
     )
 
+    material_value = record.get("material")
+    if bool(normalize_cfg.get("material_casefold", False)) and material_value is not None:
+        material_value = str(material_value).strip().lower()
+
     record["country"] = _normalize_text_value(record.get("country"), country_map)
-    record["material"] = _normalize_text_value(record.get("material"), material_map)
+    record["material"] = _normalize_text_value(material_value, material_map)
     record["unit"] = _normalize_text_value(record.get("unit"), unit_map)
 
     quantity_fields = list(
