@@ -38,13 +38,19 @@ python src/main_graph.py
 The `critical_materials` domain includes:
 - scenario runner writing monthly outputs to `src/logs/critical_materials_runs.csv`
 - metrics for supply concentration (HHI), import dependency, and bottleneck risk
-- ingestion helpers for structured/unstructured source loading
+- ingestion helpers for heterogeneous source loading (`.csv`, `.json`, `.jsonl`, `.xlsx`, `.txt`, `.md`, `.pdf`)
 - mapping helpers for KG and vector payloads
 
 Start by setting `active_domain: critical_materials`, then request:
 - run scenario
 - analyze supply risk / HHI / bottleneck
 - learn assumptions and methods
+
+Run heterogeneous ingestion with:
+```bash
+python -m domains.critical_materials.ingestion.run_ingestion --config configs/critical_materials_ingestion.example.yaml --output tmp/ingestion_manifest.json
+```
+`.xlsx` ingestion uses `openpyxl` and `.pdf` ingestion uses `pypdf`.
 
 ## Tests
 Run integration tests with:

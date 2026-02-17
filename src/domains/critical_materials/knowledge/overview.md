@@ -11,7 +11,25 @@ This domain package supports workflows for:
   - Supply concentration HHI
   - Import dependency ratio
   - Processing bottleneck score
-- Ingestion helpers load structured/unstructured data and build KG/vector payloads.
+- Ingestion helpers load heterogeneous data and build KG/vector payloads.
+
+## Heterogeneous Ingestion Support
+- Structured: `.csv`, `.json`, `.jsonl`, `.xlsx`
+- Unstructured: `.txt`, `.md`, `.pdf`
+- Routing and transformation:
+  - structured rows -> normalized records
+  - normalized records -> KG fact payloads
+  - unstructured chunks -> vector indexing payloads
+
+### Run Ingestion CLI
+```bash
+python -m domains.critical_materials.ingestion.run_ingestion --config path/to/ingestion.yaml --output tmp/ingestion_manifest.json
+```
+The command prints summary counts and optionally writes a detailed JSON manifest.
+
+### Optional Dependencies
+- `.xlsx` parsing requires `openpyxl`
+- `.pdf` extraction requires `pypdf`
 
 ## Expected Structured Fields
 For structured records, prefer fields like:

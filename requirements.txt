@@ -5,8 +5,10 @@ langchain-community
 langgraph
 matplotlib
 numpy
+openpyxl
 pandas
 peft
+pypdf
 pymilvus
 pyyaml
 requests
