@@ -78,6 +78,25 @@ analysis:
       description: processing bottleneck score
       triggers: ["bottleneck", "processing constraint", "refining risk"]
 
+ingestion:
+  source_paths: []
+  structured:
+    required_fields: ["material", "country"]
+    field_aliases:
+      mineral: material
+      commodity: material
+      nation: country
+      jurisdiction: country
+    default_values:
+      stage: supply
+    include_source_metadata: true
+  unstructured:
+    chunk_size: 180
+    chunk_overlap: 30
+  vector:
+    material: graphite
+  kg: {}
+
 providers:
   llm:
     type: ollama

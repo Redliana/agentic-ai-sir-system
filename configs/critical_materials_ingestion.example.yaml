@@ -1,0 +1,31 @@
+source_paths:
+  - data/critical_materials/supply_table.csv
+  - data/critical_materials/material_profiles.json
+  - data/critical_materials/trade_events.jsonl
+  - data/critical_materials/reference_data.xlsx
+  - data/critical_materials/policy_report.pdf
+
+material: graphite
+
+structured:
+  required_fields:
+    - material
+    - country
+  field_aliases:
+    mineral: material
+    commodity: material
+    nation: country
+    jurisdiction: country
+  default_values:
+    stage: supply
+  include_source_metadata: true
+  # xlsx_sheet_name: Sheet1
+
+unstructured:
+  chunk_size: 180
+  chunk_overlap: 30
+
+kg: {}
+
+vector:
+  material: graphite
