@@ -1,0 +1,126 @@
+name: sir
+version: 1
+description: Stochastic SIR simulation domain plugin.
+
+intents:
+  - run
+  - analyze
+  - learn
+  - exit
+  - unknown
+
+ui:
+  greeting: "Hello, I am the Virtual Interface Agent. How can I help you today?"
+  input_prompt: "You can request to run simulations, analyze outputs, or learn about model assumptions and infectious disease spread."
+  analysis_prompt: "Sure, I can help with that. What would you like to know?"
+  follow_up_prompt: "Is there anything else I can help you with?"
+  fallback_message: "Sorry, I didn't understand that. Try asking to run a model, analyze results, or about how the model works."
+  intent_labels:
+    run: "run a simulation"
+    analyze: "analyze model results"
+    learn: "learn model assumptions or disease background"
+    exit: "exit the program"
+    unknown: "unclear request"
+  keyword_rules:
+    run:
+      - run
+      - simulate
+      - execute
+    analyze:
+      - analyze
+      - analysis
+      - metric
+      - peak infection
+    learn:
+      - learn
+      - assumptions
+      - explain
+      - how does
+      - history
+    exit:
+      - exit
+      - quit
+      - stop
+
+knowledge:
+  primary_manual: src/domains/sir/knowledge/sir_model_information.md
+
+model:
+  runner_module: domains.sir.model.runner
+  runner_callable: main
+  default_params:
+    seed: 42
+    num_runs: 100
+    num_agents: 1000
+    num_steps: 28
+    num_contacts: 10
+    infection_prob: 0.3
+    infection_duration: 3
+    recovery_prob: 0.1
+
+analysis:
+  metrics_module: domains.sir.analysis.metrics
+  log_path_candidates:
+    - src/logs/all_agent_logs.csv
+    - logs/all_agent_logs.csv
+  metric_rules:
+    - function: calculate_average_total_infected
+      output_key: avg_total_infected
+      description: total number of infected
+      triggers: ["agents infected", "total infected population", "population infected"]
+    - function: calculate_peak_infection
+      output_key: peak_infection
+      value_keys: ["number of infected at peak infection step", "peak infection step"]
+      triggers: ["peak infected", "peak infection"]
+    - function: calculate_peak_infection_std
+      output_key: std_peak_infection
+      description: peak infection standard deviation
+      triggers: ["standard deviation", "std"]
+    - function: plot_state_dynamics
+      plot_only: true
+      triggers: ["plot", "graph", "sir curve"]
+    - function: calculate_infection_decline_rate
+      output_key: avg_infection_decline
+      description: the infection rate post peak infection (%)
+      triggers: ["infection decreases", "infection rate after peak"]
+    - function: calculate_time_to_half_infected
+      output_key: how_quickly_spreads
+      description: infection rate
+      triggers: ["when will half population", "how quickly", "infection rate"]
+    - function: calculate_recovery_rate_post_peak
+      output_key: recovery_rate
+      description: recovery rate post infection peak (%)
+      triggers: ["after peak recovery rate", "rate of recovery"]
+    - function: calculate_reinfection_count
+      output_key: reinfection_counts
+      description: number of agents reinfected
+      triggers: ["reinfection counts", "reinfection probability"]
+    - function: calculate_agents_never_recovered
+      output_key: never_recovered
+      description: number of agents that never recovered
+      triggers: ["never recovered", "infected forever"]
+    - function: calculate_final_state_distribution
+      output_key: infection_state_distribution
+      description: final infection state distribution
+      triggers: ["distribution infection states", "agent states"]
+
+providers:
+  llm:
+    type: ollama
+    model: mistral
+    base_url: http://localhost:11434/api/generate
+  vector:
+    type: argo_milvus
+  kg:
+    type: noop
+
+prompts:
+  report_system_prompt: "You are an expert in infectious disease modeling. Summarize analysis findings clearly for a general audience."
+  rag_system_prompt: "You are an expert infectious disease AI agent. Use the provided context to answer clearly for a general audience."
+
+rag:
+  embedding_model: v3large
+  chat_model: gpt4o
+  output_fields: ["text_content"]
+  result_text_field: text_content
+  no_context_fallback: "I couldn't find enough supporting context to answer that yet. Please try asking with more detail."

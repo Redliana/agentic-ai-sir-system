@@ -1,0 +1,98 @@
+name: critical_materials
+version: 1
+description: Critical minerals and materials supply-chain workflow domain.
+
+intents:
+  - run
+  - analyze
+  - learn
+  - exit
+  - unknown
+
+ui:
+  greeting: "Hello, I am the Virtual Interface Agent for critical minerals and materials workflows. How can I help you today?"
+  input_prompt: "You can run supply-chain scenarios, analyze risk metrics, or learn about critical materials assumptions and data sources."
+  analysis_prompt: "Sure, I can help with that. Which risk or supply metric should I analyze?"
+  follow_up_prompt: "Would you like to run another scenario, request analysis, or learn more context?"
+  fallback_message: "I could not determine your request. Try asking to run a scenario, analyze supply risk, or learn about assumptions."
+  intent_labels:
+    run: "run supply-chain scenario"
+    analyze: "analyze supply/processing/trade risk"
+    learn: "learn assumptions, methods, or historical context"
+    exit: "exit the program"
+    unknown: "unclear request"
+  keyword_rules:
+    run:
+      - run scenario
+      - simulate
+      - scenario
+      - shock
+    analyze:
+      - analyze
+      - supply risk
+      - hhi
+      - dependency
+      - bottleneck
+    learn:
+      - learn
+      - explain
+      - assumptions
+      - methodology
+      - ontology
+    exit:
+      - exit
+      - quit
+      - stop
+
+knowledge:
+  primary_manual: src/domains/critical_materials/knowledge/overview.md
+
+model:
+  runner_module: domains.critical_materials.model.scenario_runner
+  runner_callable: run_scenario
+  default_params:
+    seed: 42
+    time_horizon_months: 24
+    demand_growth_rate: 0.08
+    processing_disruption_pct: 0.15
+    substitution_factor: 0.1
+
+analysis:
+  metrics_module: domains.critical_materials.analysis.metrics
+  log_path_candidates:
+    - src/logs/critical_materials_runs.csv
+    - logs/critical_materials_runs.csv
+  metric_rules:
+    - function: calculate_supply_concentration_hhi
+      output_key: supply_concentration_hhi
+      description: Herfindahl-Hirschman concentration index
+      triggers: ["hhi", "concentration", "market concentration"]
+    - function: calculate_import_dependency
+      output_key: import_dependency
+      description: import dependency
+      triggers: ["import dependency", "dependency", "import risk"]
+    - function: calculate_processing_bottleneck_score
+      output_key: processing_bottleneck_score
+      description: processing bottleneck score
+      triggers: ["bottleneck", "processing constraint", "refining risk"]
+
+providers:
+  llm:
+    type: ollama
+    model: mistral
+    base_url: http://localhost:11434/api/generate
+  vector:
+    type: argo_milvus
+  kg:
+    type: noop
+
+prompts:
+  report_system_prompt: "You are an expert in critical minerals and materials supply chains. Summarize quantitative findings and decision implications for a general audience."
+  rag_system_prompt: "You are an expert critical materials analyst. Use provided context to answer clearly, cite assumptions, and highlight uncertainty."
+
+rag:
+  embedding_model: v3large
+  chat_model: gpt4o
+  output_fields: ["text_content"]
+  result_text_field: text_content
+  no_context_fallback: "I couldn't retrieve supporting context for that critical materials question. Try adding material, country, or scenario details."

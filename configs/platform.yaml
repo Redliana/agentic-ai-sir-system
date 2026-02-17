@@ -1,0 +1,30 @@
+profiles:
+  default:
+    graph:
+      entry_point: user_input
+      finish_point: exit
+      conditional_routes:
+        - source: user_input
+          intent_key: user_intent
+          routes:
+            run: run_model
+            analyze: ask_analysis_question
+            learn: ask_assumption_question
+            exit: exit
+            unknown: fallback
+        - source: follow_up
+          intent_key: user_intent
+          routes:
+            run: run_model
+            analyze: ask_analysis_question
+            learn: ask_assumption_question
+            exit: exit
+            unknown: fallback
+      edges:
+        - [run_model, follow_up]
+        - [ask_analysis_question, analyze]
+        - [analyze, report_results]
+        - [report_results, follow_up]
+        - [ask_assumption_question, follow_up]
+        - [fallback, user_input]
+
