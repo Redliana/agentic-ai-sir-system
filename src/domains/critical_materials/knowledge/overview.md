@@ -37,6 +37,20 @@ Preprocessing handles:
 - material/country/unit normalization
 - PDF OCR routing (`ocr_queue.txt`) based on extractable text threshold
 
+### Publish Ingestion Outputs
+```bash
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_publish \
+  --manifest /tmp/cmm_preprocess_run_20260217/ingestion_manifest.json \
+  --output-dir /tmp/cmm_preprocess_run_20260217/publish
+```
+Outputs include:
+- `kg_facts.jsonl`
+- `vector_records.jsonl`
+- `neo4j/materials.csv`
+- `neo4j/countries.csv`
+- `neo4j/relations.csv`
+- `publish_report.json`
+
 ### Optional Dependencies
 - `.xlsx` parsing requires `openpyxl`
 - `.pdf` extraction requires `pypdf`

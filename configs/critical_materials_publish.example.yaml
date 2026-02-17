@@ -1,0 +1,17 @@
+neo4j:
+  enabled: false
+  # uri: bolt://localhost:7687
+  # user: neo4j
+  # password: your_password
+  # database: neo4j
+  batch_size: 5000
+
+milvus:
+  enabled: false
+  # uri: http://localhost:19530
+  # token: username:password
+  collection: critical_materials_docs
+  embedding_model: v3large
+  # embed_url: https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/
+  batch_size: 128
+  timeout: 120
