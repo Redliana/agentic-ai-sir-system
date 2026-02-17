@@ -23,9 +23,19 @@ This domain package supports workflows for:
 
 ### Run Ingestion CLI
 ```bash
-python -m domains.critical_materials.ingestion.run_ingestion --config path/to/ingestion.yaml --output tmp/ingestion_manifest.json
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_ingestion --config path/to/ingestion.yaml --output tmp/ingestion_manifest.json
 ```
 The command prints summary counts and optionally writes a detailed JSON manifest.
+
+### Preprocess Large Corpus First
+```bash
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_preprocess --config configs/critical_materials_preprocess.example.yaml
+```
+Preprocessing handles:
+- duplicate file collapse with path-preference rules
+- source-specific field alias/default mappings
+- material/country/unit normalization
+- PDF OCR routing (`ocr_queue.txt`) based on extractable text threshold
 
 ### Optional Dependencies
 - `.xlsx` parsing requires `openpyxl`

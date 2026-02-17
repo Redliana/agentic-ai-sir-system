@@ -1,0 +1,135 @@
+corpus_root: /Users/wash198/Documents/Projects/Science_Projects/MPII_CMM/Corpus
+output_dir: tmp/corpus_preprocess
+
+extensions:
+  - .csv
+  - .json
+  - .jsonl
+  - .xlsx
+  - .pdf
+  - .txt
+  - .md
+
+skip_dir_names:
+  - __pycache__
+  - .git
+  - .venv
+  - venv
+  - .claude
+  - .playwright-mcp
+  - .ipynb_checkpoints
+
+material: graphite
+
+deduplication:
+  enabled: true
+  method: name_size
+  prefer_path_contains:
+    - preprocessed
+    - cleaned
+    - curated
+    - binned
+    - abridged
+  avoid_path_contains:
+    - copy
+    - backup
+    - temp
+    - draft
+
+preprocess:
+  required_fields: []
+  xlsx_sheet_name: null
+  global_field_aliases:
+    mineral: material
+    commodity: material
+    commodity_name: material
+    nation: country
+    jurisdiction: country
+    reporter: country
+  global_default_values:
+    stage: supply
+  source_rules:
+    - name: trade_sources
+      path_contains: [UNComtrade]
+      field_aliases:
+        reporter: country
+        partner: counterparty
+        cmdcode: hs_code
+        tradevalue: value
+        qty: quantity
+      default_values:
+        stage: trade
+    - name: wto
+      path_contains: [WTO]
+      field_aliases:
+        reporter: country
+        partner: counterparty
+        hs6: hs_code
+      default_values:
+        stage: trade
+    - name: world_bank_wits
+      path_contains: [wits_data]
+      field_aliases:
+        reporter: country
+        partner: counterparty
+        productcode: hs_code
+      default_values:
+        stage: trade
+    - name: msha
+      path_contains: [MSHA]
+      field_aliases:
+        state: country
+      default_values:
+        stage: extraction
+    - name: usgs_mcs
+      path_contains: [USGS_Data]
+      field_aliases:
+        commodity: material
+      default_values:
+        stage: supply
+
+normalization:
+  country_map:
+    usa: United States
+    us: United States
+    u.s.: United States
+    uk: United Kingdom
+    drc: Democratic Republic of the Congo
+  material_map:
+    rare earth elements: REE
+    ree: REE
+  unit_map:
+    t: tonnes
+    metric tons: tonnes
+    mt: tonnes
+    kg: kilograms
+  unit_to_tonnes:
+    tonnes: 1.0
+    kilograms: 0.001
+    kilotonnes: 1000.0
+  unit_field: unit
+  quantity_fields:
+    - quantity
+    - value
+    - production
+    - imports
+    - consumption
+    - demand
+
+ocr:
+  scanned_text_threshold: 80
+
+unstructured:
+  chunk_size: 180
+  chunk_overlap: 30
+
+kg: {}
+vector:
+  material: graphite
+
+outputs:
+  normalized_structured_path: staged/normalized_structured.jsonl
+  ingestion_config_path: ingestion_ready.yaml
+  preprocess_report_path: preprocess_report.json
+  duplicate_manifest_path: duplicates.json
+  ocr_queue_path: ocr_queue.txt
