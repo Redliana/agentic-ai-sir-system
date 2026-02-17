@@ -14,7 +14,7 @@ UI Agent is responsible for:
 """
 
 # Import libraries
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import yaml
 # Import dependencies
@@ -166,16 +166,50 @@ class UIAgent:
         with open(self.params_file, "w") as file:
             yaml.dump(new_params, file, default_flow_style=False)
 
-    def get_user_params(self, prompt, default_value, value_type):
-        """Get user input and validate it."""
-        model_params = input(f"{prompt}: ")
-        if not model_params:
+    def _coerce_param_value(self, raw_value: str, default_value: Any):
+        if raw_value is None:
             return default_value
-        try:
-            return value_type(model_params)
-        except ValueError:
+        value = raw_value.strip()
+        if not value:
+            return default_value
+
+        # Preserve domain-specific parameter types from defaults.
+        if isinstance(default_value, bool):
+            if value.lower() in {"true", "1", "yes", "y"}:
+                return True
+            if value.lower() in {"false", "0", "no", "n"}:
+                return False
             print(f"Invalid input, using default: {default_value}")
             return default_value
+
+        if isinstance(default_value, int) and not isinstance(default_value, bool):
+            try:
+                return int(value)
+            except ValueError:
+                print(f"Invalid input, using default: {default_value}")
+                return default_value
+
+        if isinstance(default_value, float):
+            try:
+                return float(value)
+            except ValueError:
+                print(f"Invalid input, using default: {default_value}")
+                return default_value
+
+        if default_value is None:
+            return value
+
+        value_type = type(default_value)
+        try:
+            return value_type(value)
+        except (TypeError, ValueError):
+            print(f"Invalid input, using default: {default_value}")
+            return default_value
+
+    def get_user_params(self, prompt: str, default_value: Any):
+        """Get user input and coerce to the default value type."""
+        model_params = input(f"{prompt}: ")
+        return self._coerce_param_value(model_params, default_value)
 
     def prompt_for_parameters(self, default_params):
         """Prompt the user for parameters, and return validated ones."""
@@ -186,33 +220,18 @@ class UIAgent:
         
         params_choice = input("\n[UI Agent]: Would you prefer to use the default parameters or enter your own?\n>").lower()
 
-        if any(keyword in params_choice.lower() for keyword in ["default", "default parameters"]):
+        if (not params_choice) or any(
+            keyword in params_choice.lower() for keyword in ["default", "default parameters", "yes", "y"]
+        ):
             print("\n[UI Agent]: Thanks, using the default parameters to run the simulation!")
-            new_params = default_params
+            new_params = dict(default_params)
         else:
-            # Prompt for each parameter
             print("[UI Agent]: Okay, please enter the following parameters:")
-            num_runs = self.get_user_params("Number of runs", default_params["num_runs"], int)
-            num_agents = self.get_user_params("Number of agents", default_params["num_agents"], int)
-            num_steps = self.get_user_params("Number of steps", default_params["num_steps"], int)
-            num_contacts = self.get_user_params("Number of contacts per step", default_params["num_contacts"], int)
-            infection_prob = self.get_user_params("Infection probability", default_params["infection_prob"], float)
-            infection_duration = self.get_user_params("Infection duration (in steps)", default_params["infection_duration"], int)
-            recovery_prob = self.get_user_params("Recovery probability", default_params["recovery_prob"], float)
+            new_params = {}
+            for key, value in default_params.items():
+                label = key.replace("_", " ").capitalize()
+                new_params[key] = self.get_user_params(f"{label} [{value}]", value)
 
-            # Create a dictionary of the parameters
-            new_params = {
-                "seed": 42,  # Fixed seed
-                "num_runs": num_runs,
-                "num_agents": num_agents,
-                "num_steps": num_steps,
-                "num_contacts": num_contacts,
-                "infection_prob": infection_prob,
-                "infection_duration": infection_duration,
-                "recovery_prob": recovery_prob
-            }
-
-            # Save the new parameters to the file
             self.save_params(new_params)
 
         return new_params
