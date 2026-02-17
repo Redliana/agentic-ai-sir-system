@@ -238,6 +238,60 @@ def _normalize_structured_record(record: Dict[str, Any], normalize_cfg: Dict[str
     return record
 
 
+def _value_matches_filters(
+    value: Any,
+    *,
+    drop_equals: List[str],
+    drop_contains: List[str],
+) -> bool:
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    if not text:
+        return False
+    if text in drop_equals:
+        return True
+    return any(token in text for token in drop_contains)
+
+
+def _drop_reason_for_record(record: Dict[str, Any], normalize_cfg: Dict[str, Any]) -> Optional[str]:
+    country_drop_equals = [
+        str(item).strip().lower()
+        for item in list(normalize_cfg.get("country_drop_equals", []))
+        if str(item).strip()
+    ]
+    country_drop_contains = [
+        str(item).strip().lower()
+        for item in list(normalize_cfg.get("country_drop_contains", []))
+        if str(item).strip()
+    ]
+    if _value_matches_filters(
+        record.get("country"),
+        drop_equals=country_drop_equals,
+        drop_contains=country_drop_contains,
+    ):
+        return "country_filter"
+
+    material_drop_equals = [
+        str(item).strip().lower()
+        for item in list(normalize_cfg.get("material_drop_equals", []))
+        if str(item).strip()
+    ]
+    material_drop_contains = [
+        str(item).strip().lower()
+        for item in list(normalize_cfg.get("material_drop_contains", []))
+        if str(item).strip()
+    ]
+    if _value_matches_filters(
+        record.get("material"),
+        drop_equals=material_drop_equals,
+        drop_contains=material_drop_contains,
+    ):
+        return "material_filter"
+
+    return None
+
+
 def _pdf_first_page_text_len(path: str) -> int:
     try:
         from pypdf import PdfReader
@@ -325,6 +379,8 @@ def run_preprocess_workflow(config: Dict[str, Any]) -> Dict[str, Any]:
         grouped_structured_paths[rule_name]["paths"].append(path)
 
     normalized_structured_records: List[Dict[str, Any]] = []
+    quality_filter_reason_counts: Dict[str, int] = {}
+    quality_filtered_record_count = 0
     structured_failures: List[Dict[str, str]] = []
     for group in grouped_structured_paths.values():
         rule = group["rule"]
@@ -343,7 +399,13 @@ def run_preprocess_workflow(config: Dict[str, Any]) -> Dict[str, Any]:
         for failure in ingested.get("failed_paths", []):
             structured_failures.append(failure)
         for record in ingested.get("records", []):
-            normalized_structured_records.append(_normalize_structured_record(record, normalize_cfg))
+            normalized = _normalize_structured_record(record, normalize_cfg)
+            drop_reason = _drop_reason_for_record(normalized, normalize_cfg)
+            if drop_reason:
+                quality_filtered_record_count += 1
+                quality_filter_reason_counts[drop_reason] = quality_filter_reason_counts.get(drop_reason, 0) + 1
+                continue
+            normalized_structured_records.append(normalized)
 
     ocr_cfg = dict(config.get("ocr", {}))
     scanned_threshold = int(ocr_cfg.get("scanned_text_threshold", 80))
@@ -414,6 +476,7 @@ def run_preprocess_workflow(config: Dict[str, Any]) -> Dict[str, Any]:
             "unstructured_path_count": len(unstructured_paths),
             "duplicate_group_count": len(dedupe_result["groups"]),
             "normalized_record_count": len(normalized_structured_records),
+            "quality_filtered_record_count": quality_filtered_record_count,
             "text_ready_unstructured_count": len(text_ready_unstructured_paths),
             "ocr_queue_count": len(ocr_queue),
         },
@@ -427,6 +490,7 @@ def run_preprocess_workflow(config: Dict[str, Any]) -> Dict[str, Any]:
             "ocr_queue": ocr_queue,
             "structured_failures": structured_failures,
             "unstructured_failures": unstructured_failures,
+            "quality_filter_reason_counts": quality_filter_reason_counts,
         },
     }
 

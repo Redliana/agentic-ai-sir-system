@@ -95,6 +95,16 @@ normalization:
     u.s.: United States
     uk: United Kingdom
     drc: Democratic Republic of the Congo
+    korea (rep. of): South Korea
+    korea, rep. of: South Korea
+    korea, south: South Korea
+  country_drop_equals:
+    - world
+    - global
+  country_drop_contains:
+    - world total
+    - other countries
+    - unspecified minerals
   material_map:
     rare earth elements: REE
     ree: REE
