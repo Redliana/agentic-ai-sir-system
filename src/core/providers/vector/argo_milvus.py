@@ -10,11 +10,19 @@ from .base import VectorProvider
 
 
 class ArgoMilvusProvider(VectorProvider):
-    def __init__(self, embed_url: str, chat_url: str, search_url: str, timeout: int = 120):
+    def __init__(
+        self,
+        embed_url: str,
+        chat_url: str,
+        search_url: str,
+        timeout: int = 120,
+        auth_token: str | None = None,
+    ):
         self.embed_url = embed_url
         self.chat_url = chat_url
         self.search_url = search_url
         self.timeout = timeout
+        self.auth_token = auth_token or os.getenv("MILVUS_AUTH_TOKEN")
 
     def _default_user(self) -> str:
         return (os.getenv("USERNAME") or os.getenv("USER") or "unknown").strip()
@@ -33,6 +41,17 @@ class ArgoMilvusProvider(VectorProvider):
         output_fields: List[str],
         limit: int,
     ) -> Dict[str, Any]:
+        if not self.auth_token:
+            raise ValueError(
+                "Milvus auth token is not configured. Set MILVUS_AUTH_TOKEN environment variable."
+            )
+
+        auth_token = (
+            self.auth_token
+            if self.auth_token.lower().startswith("bearer ")
+            else f"Bearer {self.auth_token}"
+        )
+
         payload = json.dumps(
             {
                 "collectionName": collection,
@@ -43,7 +62,7 @@ class ArgoMilvusProvider(VectorProvider):
             }
         )
         headers = {
-            "Authorization-Token": "Bearer root:Milvus",
+            "Authorization-Token": auth_token,
             "Content-Type": "application/json",
         }
         response = requests.post(self.search_url, data=payload, headers=headers, timeout=self.timeout)
@@ -66,4 +85,3 @@ class ArgoMilvusProvider(VectorProvider):
         response = requests.post(self.chat_url, data=payload, headers=headers, timeout=self.timeout)
         response.raise_for_status()
         return response.json().get("response", "")
-

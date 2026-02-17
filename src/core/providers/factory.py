@@ -35,6 +35,7 @@ def create_vector_provider(config: Dict[str, Any]) -> VectorProvider:
             ),
             search_url=config.get("search_url", "http://titanv.gss.anl.gov:19530/v1/vector/search"),
             timeout=config.get("timeout", 120),
+            auth_token=config.get("auth_token"),
         )
     raise ValueError(f"Unsupported vector provider type: {provider_type}")
 

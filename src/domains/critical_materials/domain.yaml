@@ -93,3 +93,6 @@ prompts:
 rag:
   embedding_model: v3large
   chat_model: gpt4o
+  output_fields: ["text_content"]
+  result_text_field: text_content
+  no_context_fallback: "I couldn't retrieve supporting context for that critical materials question. Try adding material, country, or scenario details."
