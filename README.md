@@ -70,6 +70,41 @@ PYTHONPATH=src python -m domains.critical_materials.ingestion.run_publish \
 ```
 Optional live backend publish settings can be passed via `--publish-config configs/critical_materials_publish.example.yaml`.
 
+## Containerized Workflow (Neo4j + Pipeline)
+This repo includes a contained Docker stack for the full workflow:
+- `neo4j` container (local graph database)
+- `workflow` container (preprocess, ingest, publish tooling)
+
+1. Create env file:
+```bash
+cp .env.workflow.example .env.workflow
+```
+2. Start containers:
+```bash
+docker compose --env-file .env.workflow -f docker-compose.workflow.yml up -d --build
+```
+3. Run full workflow in container:
+```bash
+docker compose --env-file .env.workflow -f docker-compose.workflow.yml exec workflow \
+  bash -lc "scripts/docker/run_full_workflow.sh"
+```
+By default the runner executes in memory-safe KG mode (`ENABLE_UNSTRUCTURED=false`) and keeps only
+`material,country,stage` structured fields during ingestion. You can override at runtime:
+```bash
+docker compose --env-file .env.workflow -f docker-compose.workflow.yml exec workflow \
+  bash -lc "ENABLE_UNSTRUCTURED=true STRUCTURED_KEEP_FIELDS=material,country,stage scripts/docker/run_full_workflow.sh"
+```
+Optional knobs:
+- `ENABLE_UNSTRUCTURED`: set `true` to include unstructured chunk ingestion/vector payloads.
+- `PREPROCESS_REQUIRED_FIELDS`: comma-separated structured required fields (default `material,country`).
+- `STRUCTURED_KEEP_FIELDS`: comma-separated structured fields retained post-filter (default `material,country,stage`).
+4. Open Neo4j Browser:
+- URL: `http://localhost:7474`
+- User: `neo4j`
+- Password: value from `.env.workflow` (`NEO4J_PASSWORD`)
+
+Run output artifacts are written under the mounted workspace path (`CMM_WORKSPACE_PATH` in `.env.workflow`).
+
 ## Tests
 Run integration tests with:
 ```bash

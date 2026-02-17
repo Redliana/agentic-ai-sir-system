@@ -56,6 +56,7 @@ def ingest_heterogeneous_sources(config: Dict[str, Any]) -> Dict[str, Any]:
     source_paths = list(config.get("source_paths", []))
     structured_paths_override = list(config.get("structured_paths", []))
     unstructured_paths_override = list(config.get("unstructured_paths", []))
+    include_unstructured = bool(config.get("include_unstructured", True))
 
     structured_paths, unstructured_paths, unknown_paths = _partition_paths(
         source_paths,
@@ -67,9 +68,20 @@ def ingest_heterogeneous_sources(config: Dict[str, Any]) -> Dict[str, Any]:
     structured_cfg["source_paths"] = structured_paths
     structured_result = ingest_structured_sources(structured_cfg)
 
-    unstructured_cfg = dict(config.get("unstructured", {}))
-    unstructured_cfg["source_paths"] = unstructured_paths
-    unstructured_result = ingest_unstructured_sources(unstructured_cfg)
+    if include_unstructured:
+        unstructured_cfg = dict(config.get("unstructured", {}))
+        unstructured_cfg["source_paths"] = unstructured_paths
+        unstructured_result = ingest_unstructured_sources(unstructured_cfg)
+    else:
+        unstructured_result = {
+            "status": "ok",
+            "documents": [],
+            "document_count": 0,
+            "missing_paths": [],
+            "unsupported_paths": [],
+            "failed_paths": [],
+            "missing_dependencies": [],
+        }
 
     kg_cfg = dict(config.get("kg", {}))
     kg_cfg["records"] = structured_result.get("records", [])
@@ -95,6 +107,7 @@ def ingest_heterogeneous_sources(config: Dict[str, Any]) -> Dict[str, Any]:
             "source_count": len(source_paths),
             "structured_paths": structured_paths,
             "unstructured_paths": unstructured_paths,
+            "include_unstructured": include_unstructured,
             "unknown_paths": unknown_paths,
             "structured_record_count": structured_result.get("record_count", 0),
             "document_count": unstructured_result.get("document_count", 0),

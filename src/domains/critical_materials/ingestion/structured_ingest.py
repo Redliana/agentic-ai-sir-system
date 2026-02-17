@@ -3,7 +3,7 @@
 import csv
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 
 SUPPORTED_STRUCTURED_EXTENSIONS = {".csv", ".json", ".jsonl", ".xlsx"}
@@ -18,23 +18,26 @@ def _safe_column_name(value: Any, idx: int) -> str:
     return text if text else f"column_{idx}"
 
 
-def _load_csv(path: str) -> List[Dict[str, Any]]:
+def _iter_csv(path: str) -> Iterable[Dict[str, Any]]:
     with open(path, "r", newline="") as file:
-        return list(csv.DictReader(file))
+        for row in csv.DictReader(file):
+            if isinstance(row, dict):
+                yield row
 
 
-def _load_json(path: str) -> List[Dict[str, Any]]:
+def _iter_json(path: str) -> Iterable[Dict[str, Any]]:
     with open(path, "r") as file:
         payload = json.load(file)
     if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, dict)]
+        for item in payload:
+            if isinstance(item, dict):
+                yield item
+        return
     if isinstance(payload, dict):
-        return [payload]
-    return []
+        yield payload
 
 
-def _load_jsonl(path: str) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
+def _iter_jsonl(path: str) -> Iterable[Dict[str, Any]]:
     with open(path, "r") as file:
         for line in file:
             text = line.strip()
@@ -42,11 +45,10 @@ def _load_jsonl(path: str) -> List[Dict[str, Any]]:
                 continue
             item = json.loads(text)
             if isinstance(item, dict):
-                rows.append(item)
-    return rows
+                yield item
 
 
-def _load_xlsx(path: str, sheet_name: str = None) -> List[Dict[str, Any]]:
+def _iter_xlsx(path: str, sheet_name: str = None) -> Iterable[Dict[str, Any]]:
     try:
         from openpyxl import load_workbook
     except ImportError as exc:
@@ -56,7 +58,6 @@ def _load_xlsx(path: str, sheet_name: str = None) -> List[Dict[str, Any]]:
 
     workbook = load_workbook(path, read_only=True, data_only=True)
     sheet_names = [sheet_name] if sheet_name else list(workbook.sheetnames)
-    rows: List[Dict[str, Any]] = []
 
     for sheet in sheet_names:
         worksheet = workbook[sheet]
@@ -70,9 +71,7 @@ def _load_xlsx(path: str, sheet_name: str = None) -> List[Dict[str, Any]]:
                 continue
             record = {headers[idx]: row[idx] if idx < len(row) else None for idx in range(len(headers))}
             record["__sheet_name"] = sheet
-            rows.append(record)
-
-    return rows
+            yield record
 
 
 def _has_required_fields(record: Dict[str, Any], required_fields: set) -> bool:
@@ -102,6 +101,17 @@ def _normalize_record(
     return normalized
 
 
+def _project_record(record: Dict[str, Any], keep_fields: List[str]) -> Dict[str, Any]:
+    if not keep_fields:
+        return record
+
+    projected = {field: record.get(field) for field in keep_fields}
+    for meta_field in ("__source_path", "__source_type", "__sheet_name"):
+        if meta_field in record and meta_field not in projected:
+            projected[meta_field] = record[meta_field]
+    return projected
+
+
 def ingest_structured_sources(config: Dict[str, Any]) -> Dict[str, Any]:
     """Load tabular structured inputs from CSV, JSON, JSONL, and XLSX files."""
     config = config or {}
@@ -110,6 +120,7 @@ def ingest_structured_sources(config: Dict[str, Any]) -> Dict[str, Any]:
     field_aliases = dict(config.get("field_aliases", {}))
     default_values = dict(config.get("default_values", {}))
     include_source_metadata = bool(config.get("include_source_metadata", True))
+    keep_fields = [str(field) for field in list(config.get("keep_fields", [])) if str(field).strip()]
     xlsx_sheet_name = config.get("xlsx_sheet_name")
 
     ingested: List[Dict[str, Any]] = []
@@ -131,13 +142,13 @@ def ingest_structured_sources(config: Dict[str, Any]) -> Dict[str, Any]:
 
         try:
             if ext == ".csv":
-                records = _load_csv(path)
+                records = _iter_csv(path)
             elif ext == ".json":
-                records = _load_json(path)
+                records = _iter_json(path)
             elif ext == ".jsonl":
-                records = _load_jsonl(path)
+                records = _iter_jsonl(path)
             else:
-                records = _load_xlsx(path, sheet_name=xlsx_sheet_name)
+                records = _iter_xlsx(path, sheet_name=xlsx_sheet_name)
         except MissingDependencyError as exc:
             message = str(exc)
             if message not in missing_dependencies:
@@ -148,15 +159,19 @@ def ingest_structured_sources(config: Dict[str, Any]) -> Dict[str, Any]:
             failed_paths.append({"path": path, "error": str(exc)})
             continue
 
-        for record in records:
-            normalized = _normalize_record(record, field_aliases, default_values)
-            if include_source_metadata:
-                normalized["__source_path"] = path
-                normalized["__source_type"] = ext
-            if not _has_required_fields(normalized, required_fields):
-                skipped_required_count += 1
-                continue
-            ingested.append(normalized)
+        try:
+            for record in records:
+                normalized = _normalize_record(record, field_aliases, default_values)
+                if include_source_metadata:
+                    normalized["__source_path"] = path
+                    normalized["__source_type"] = ext
+                if not _has_required_fields(normalized, required_fields):
+                    skipped_required_count += 1
+                    continue
+                ingested.append(_project_record(normalized, keep_fields))
+        except Exception as exc:  # pragma: no cover - protection for malformed files
+            failed_paths.append({"path": path, "error": str(exc)})
+            continue
 
     status = "ok" if not missing_paths and not unsupported_paths and not failed_paths else "partial"
     return {
