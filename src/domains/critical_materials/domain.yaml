@@ -56,6 +56,8 @@ model:
     demand_growth_rate: 0.08
     processing_disruption_pct: 0.15
     substitution_factor: 0.1
+    base_demand_tonnes: 100000
+    material: graphite
 
 analysis:
   metrics_module: domains.critical_materials.analysis.metrics
