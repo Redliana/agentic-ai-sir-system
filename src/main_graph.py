@@ -10,6 +10,7 @@ from agents.reporter_agent import ReporterAgent
 from agents.ui_agent import UIAgent
 from core.orchestration.graph import build_graph
 from core.orchestration.router import load_graph_config
+from core.registry.domain_loader import load_active_domain
 from core.orchestration.state import State
 
 # Initialize agents
@@ -29,9 +30,17 @@ DEFAULT_PARAMS = {
     "recovery_prob": 0.1,
 }
 
+DOMAIN_METADATA = load_active_domain()
+DOMAIN_CONFIG = DOMAIN_METADATA.get("config", {})
+DEFAULT_PARAMS = DOMAIN_CONFIG.get("model", {}).get("default_params", DEFAULT_PARAMS)
+LOG_PATH_CANDIDATES = DOMAIN_CONFIG.get("analysis", {}).get(
+    "log_path_candidates",
+    ["src/logs/all_agent_logs.csv", "logs/all_agent_logs.csv"],
+)
+
 
 def _resolve_logs_path() -> str:
-    for candidate in ("src/logs/all_agent_logs.csv", "logs/all_agent_logs.csv"):
+    for candidate in LOG_PATH_CANDIDATES:
         if os.path.exists(candidate):
             return candidate
     return ""

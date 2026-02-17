@@ -5,7 +5,7 @@ Model Agent is resonsible for running the SIR model.
 """
 
 # Import dependencies
-from sir_sim import main
+from domains.sir.model.runner import main
 
 class ModelAgent:
     def run(self, params):

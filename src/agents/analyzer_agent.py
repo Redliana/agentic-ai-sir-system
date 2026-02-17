@@ -10,7 +10,7 @@ Analyzer Agent is responsible for:
 # Import libraries 
 import pandas as pd
 # Import dependencies
-from utils.analysis_tools import (
+from domains.sir.analysis.metrics import (
     calculate_peak_infection, 
     calculate_average_total_infected, 
     calculate_peak_infection_std, 

@@ -20,7 +20,9 @@ from langchain.schema import Document
 # Paths for retrieving and augmenting files to the vectorstore
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGS_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "logs"))
-MANUAL_PATH = os.path.normpath(os.path.join(BASE_DIR, "..", "knowledge", "sir_model_information.md"))
+MANUAL_PATH = os.path.normpath(
+    os.path.join(BASE_DIR, "..", "domains", "sir", "knowledge", "sir_model_information.md")
+)
 VECTORSTORE_MANUALS_DIR = os.path.join(BASE_DIR, "faiss_store_manuals")
 
 def load_manual_as_documents(path):

@@ -1,0 +1,7 @@
+active_domain: sir
+
+domains:
+  sir:
+    config_path: src/domains/sir/domain.yaml
+    package: domains.sir
+

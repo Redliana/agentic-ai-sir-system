@@ -1,0 +1,32 @@
+name: sir
+version: 1
+description: Stochastic SIR simulation domain plugin.
+
+intents:
+  - run
+  - analyze
+  - learn
+  - exit
+  - unknown
+
+knowledge:
+  primary_manual: src/domains/sir/knowledge/sir_model_information.md
+
+model:
+  runner_module: domains.sir.model.runner
+  runner_callable: main
+  default_params:
+    seed: 42
+    num_runs: 100
+    num_agents: 1000
+    num_steps: 28
+    num_contacts: 10
+    infection_prob: 0.3
+    infection_duration: 3
+    recovery_prob: 0.1
+
+analysis:
+  metrics_module: domains.sir.analysis.metrics
+  log_path_candidates:
+    - src/logs/all_agent_logs.csv
+    - logs/all_agent_logs.csv
