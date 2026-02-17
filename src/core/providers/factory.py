@@ -5,14 +5,14 @@ from typing import Any, Dict
 from .kg.base import KGProvider
 from .kg.noop import NoopKGProvider
 from .llm.base import LLMProvider
-from .llm.ollama import OllamaProvider
-from .vector.argo_milvus import ArgoMilvusProvider
 from .vector.base import VectorProvider
 
 
 def create_llm_provider(config: Dict[str, Any]) -> LLMProvider:
     provider_type = (config or {}).get("type", "ollama")
     if provider_type == "ollama":
+        from .llm.ollama import OllamaProvider
+
         return OllamaProvider(
             model=config.get("model", "mistral"),
             base_url=config.get("base_url", "http://localhost:11434/api/generate"),
@@ -24,6 +24,8 @@ def create_llm_provider(config: Dict[str, Any]) -> LLMProvider:
 def create_vector_provider(config: Dict[str, Any]) -> VectorProvider:
     provider_type = (config or {}).get("type", "argo_milvus")
     if provider_type == "argo_milvus":
+        from .vector.argo_milvus import ArgoMilvusProvider
+
         return ArgoMilvusProvider(
             embed_url=config.get(
                 "embed_url", "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
@@ -42,4 +44,3 @@ def create_kg_provider(config: Dict[str, Any]) -> KGProvider:
     if provider_type == "noop":
         return NoopKGProvider()
     raise ValueError(f"Unsupported KG provider type: {provider_type}")
-

@@ -22,6 +22,11 @@ from core.providers.factory import create_llm_provider
 from core.providers.llm.base import LLMProvider
 
 
+class _NoopLLMProvider:
+    def generate(self, prompt: str, system: str = "") -> str:
+        return "unknown"
+
+
 class UIAgent:
     def __init__(
             self,
@@ -37,8 +42,13 @@ class UIAgent:
         elif "model" not in provider_cfg:
             provider_cfg["model"] = model
 
-        self.llm = llm_provider or create_llm_provider(provider_cfg)
         self.test_mode = test_mode
+        if llm_provider is not None:
+            self.llm = llm_provider
+        elif self.test_mode:
+            self.llm = _NoopLLMProvider()
+        else:
+            self.llm = create_llm_provider(provider_cfg)
         self.params_file = params_file
         self.params = self.load_params()
         self.domain_config = domain_config or {}
