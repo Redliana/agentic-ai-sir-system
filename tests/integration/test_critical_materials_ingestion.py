@@ -97,6 +97,55 @@ class TestCriticalMaterialsIngestion(unittest.TestCase):
                 result["summary"]["structured_record_count"],
             )
 
+    def test_ingestion_can_disable_unstructured_and_project_structured_fields(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            jsonl_path = os.path.join(tmpdir, "structured.jsonl")
+            txt_path = os.path.join(tmpdir, "note.txt")
+
+            with open(jsonl_path, "w") as file:
+                file.write(
+                    json.dumps(
+                        {
+                            "material": "graphite",
+                            "country": "United States",
+                            "stage": "processing",
+                            "extra_column": "drop-me",
+                        }
+                    )
+                    + "\n"
+                )
+                file.write(json.dumps({"material": "graphite", "country": ""}) + "\n")
+
+            with open(txt_path, "w") as file:
+                file.write("This should be ignored when include_unstructured is false.")
+
+            config = {
+                "source_paths": [jsonl_path, txt_path],
+                "structured_paths": [jsonl_path],
+                "unstructured_paths": [txt_path],
+                "include_unstructured": False,
+                "structured": {
+                    "required_fields": ["material", "country"],
+                    "keep_fields": ["material", "country", "stage"],
+                    "include_source_metadata": True,
+                },
+            }
+
+            result = ingest_heterogeneous_sources(config)
+
+            self.assertFalse(result["summary"]["include_unstructured"])
+            self.assertEqual(result["structured"]["record_count"], 1)
+            self.assertEqual(result["unstructured"]["document_count"], 0)
+            self.assertEqual(result["vector"]["record_count"], 0)
+
+            record = result["structured"]["records"][0]
+            self.assertEqual(record["material"], "graphite")
+            self.assertEqual(record["country"], "United States")
+            self.assertEqual(record["stage"], "processing")
+            self.assertNotIn("extra_column", record)
+            self.assertIn("__source_path", record)
+            self.assertIn("__source_type", record)
+
 
 if __name__ == "__main__":
     unittest.main()

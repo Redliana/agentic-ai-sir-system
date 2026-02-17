@@ -1,0 +1,7 @@
+pyyaml
+requests
+numpy
+openpyxl
+pypdf
+neo4j
+pymilvus

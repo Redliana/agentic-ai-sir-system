@@ -259,15 +259,32 @@ def _build_ingestion_ready_config(
     unstructured_paths: List[str],
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
+    ingestion_cfg = dict(config.get("ingestion", {}))
+    include_unstructured = bool(ingestion_cfg.get("include_unstructured", True))
+    structured_overrides = dict(ingestion_cfg.get("structured", {}))
+
+    required_fields = list(structured_overrides.pop("required_fields", ["material", "country"]))
+    include_source_metadata = bool(structured_overrides.pop("include_source_metadata", True))
+    keep_fields = structured_overrides.pop("keep_fields", ["material", "country", "stage"])
+    source_paths = [normalized_structured_path]
+    if include_unstructured:
+        source_paths.extend(sorted(unstructured_paths))
+
+    structured_cfg = {
+        "required_fields": required_fields,
+        "include_source_metadata": include_source_metadata,
+    }
+    if keep_fields is not None:
+        structured_cfg["keep_fields"] = list(keep_fields)
+    structured_cfg.update(structured_overrides)
+
     ingestion_cfg = {
-        "source_paths": [normalized_structured_path] + sorted(unstructured_paths),
+        "source_paths": source_paths,
         "structured_paths": [normalized_structured_path],
-        "unstructured_paths": sorted(unstructured_paths),
+        "unstructured_paths": sorted(unstructured_paths) if include_unstructured else [],
+        "include_unstructured": include_unstructured,
         "material": config.get("material", "unspecified"),
-        "structured": {
-            "required_fields": ["material", "country"],
-            "include_source_metadata": True,
-        },
+        "structured": structured_cfg,
         "unstructured": dict(config.get("unstructured", {"chunk_size": 180, "chunk_overlap": 30})),
         "kg": dict(config.get("kg", {})),
         "vector": dict(config.get("vector", {})),

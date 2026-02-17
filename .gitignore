@@ -3,3 +3,6 @@ __pycache__/
 
 src/logs/
 logs/
+
+# Local environment overrides for Docker workflow.
+.env.workflow

@@ -116,6 +116,11 @@ class TestCriticalMaterialsPreprocess(unittest.TestCase):
             self.assertIn(normalized_path, ingestion_cfg.get("structured_paths", []))
             self.assertIn(pdf_text, ingestion_cfg.get("unstructured_paths", []))
             self.assertNotIn(pdf_scanned, ingestion_cfg.get("unstructured_paths", []))
+            self.assertTrue(ingestion_cfg.get("include_unstructured"))
+            self.assertEqual(
+                ingestion_cfg.get("structured", {}).get("keep_fields"),
+                ["material", "country", "stage"],
+            )
 
             with open(ocr_queue_path, "r") as file:
                 ocr_lines = [line.strip() for line in file if line.strip()]
