@@ -62,6 +62,14 @@ This generates:
 - `ocr_queue.txt` (PDFs requiring OCR)
 - `duplicates.json` (duplicate selection decisions)
 
+Publish ingestion outputs to backend-ready load packages:
+```bash
+PYTHONPATH=src python -m domains.critical_materials.ingestion.run_publish \
+  --manifest /tmp/cmm_preprocess_run_20260217/ingestion_manifest.json \
+  --output-dir /tmp/cmm_preprocess_run_20260217/publish
+```
+Optional live backend publish settings can be passed via `--publish-config configs/critical_materials_publish.example.yaml`.
+
 ## Tests
 Run integration tests with:
 ```bash
