@@ -126,6 +126,48 @@ class TestCriticalMaterialsPreprocess(unittest.TestCase):
                 ocr_lines = [line.strip() for line in file if line.strip()]
             self.assertIn(pdf_scanned, ocr_lines)
 
+    def test_preprocess_applies_country_quality_filters(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            corpus_root = os.path.join(tmpdir, "corpus")
+            os.makedirs(corpus_root, exist_ok=True)
+
+            csv_path = os.path.join(corpus_root, "supply.csv")
+            with open(csv_path, "w") as file:
+                file.write("material,country,quantity,unit\n")
+                file.write("graphite,United States,10,t\n")
+                file.write("graphite,World total (rounded),25,t\n")
+
+            output_dir = os.path.join(tmpdir, "out")
+            config = {
+                "corpus_root": corpus_root,
+                "output_dir": output_dir,
+                "extensions": [".csv"],
+                "preprocess": {"required_fields": ["material", "country"]},
+                "normalization": {
+                    "country_drop_contains": ["world total"],
+                },
+                "outputs": {
+                    "normalized_structured_path": "staged/normalized_structured.jsonl",
+                    "ingestion_config_path": "ingestion_ready.yaml",
+                    "preprocess_report_path": "preprocess_report.json",
+                    "duplicate_manifest_path": "duplicates.json",
+                    "ocr_queue_path": "ocr_queue.txt",
+                },
+            }
+
+            result = run_preprocess_workflow(config)
+            normalized_path = result["artifacts"]["normalized_structured_path"]
+            with open(normalized_path, "r") as file:
+                rows = [json.loads(line) for line in file if line.strip()]
+
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0].get("country"), "United States")
+            self.assertEqual(result["summary"]["quality_filtered_record_count"], 1)
+            self.assertEqual(
+                result["preprocess"].get("quality_filter_reason_counts", {}).get("country_filter"),
+                1,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

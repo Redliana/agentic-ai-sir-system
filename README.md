@@ -61,6 +61,13 @@ This generates:
 - `staged/normalized_structured.jsonl` (normalized structured records)
 - `ocr_queue.txt` (PDFs requiring OCR)
 - `duplicates.json` (duplicate selection decisions)
+- `preprocess_report.json` (includes `quality_filtered_record_count` and filter reason counts)
+
+Quality filtering can be configured under `normalization` in `configs/critical_materials_preprocess.example.yaml`:
+- `country_drop_equals`
+- `country_drop_contains`
+- `material_drop_equals`
+- `material_drop_contains`
 
 Publish ingestion outputs to backend-ready load packages:
 ```bash
