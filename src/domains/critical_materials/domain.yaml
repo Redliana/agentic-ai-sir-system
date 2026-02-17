@@ -56,6 +56,7 @@ model:
     demand_growth_rate: 0.08
     processing_disruption_pct: 0.15
     substitution_factor: 0.1
+    output_path: src/logs/critical_materials_runs.csv
 
 analysis:
   metrics_module: domains.critical_materials.analysis.metrics

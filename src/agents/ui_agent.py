@@ -190,27 +190,14 @@ class UIAgent:
             print("\n[UI Agent]: Thanks, using the default parameters to run the simulation!")
             new_params = default_params
         else:
-            # Prompt for each parameter
             print("[UI Agent]: Okay, please enter the following parameters:")
-            num_runs = self.get_user_params("Number of runs", default_params["num_runs"], int)
-            num_agents = self.get_user_params("Number of agents", default_params["num_agents"], int)
-            num_steps = self.get_user_params("Number of steps", default_params["num_steps"], int)
-            num_contacts = self.get_user_params("Number of contacts per step", default_params["num_contacts"], int)
-            infection_prob = self.get_user_params("Infection probability", default_params["infection_prob"], float)
-            infection_duration = self.get_user_params("Infection duration (in steps)", default_params["infection_duration"], int)
-            recovery_prob = self.get_user_params("Recovery probability", default_params["recovery_prob"], float)
-
-            # Create a dictionary of the parameters
-            new_params = {
-                "seed": 42,  # Fixed seed
-                "num_runs": num_runs,
-                "num_agents": num_agents,
-                "num_steps": num_steps,
-                "num_contacts": num_contacts,
-                "infection_prob": infection_prob,
-                "infection_duration": infection_duration,
-                "recovery_prob": recovery_prob
-            }
+            new_params = {}
+            for key, default_value in default_params.items():
+                label = key.replace("_", " ").capitalize()
+                value_type = type(default_value)
+                if value_type not in [int, float, str]:
+                    value_type = str
+                new_params[key] = self.get_user_params(label, default_value, value_type)
 
             # Save the new parameters to the file
             self.save_params(new_params)
