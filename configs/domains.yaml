@@ -4,4 +4,6 @@ domains:
   sir:
     config_path: src/domains/sir/domain.yaml
     package: domains.sir
-
+  critical_materials:
+    config_path: src/domains/critical_materials/domain.yaml
+    package: domains.critical_materials

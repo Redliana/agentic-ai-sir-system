@@ -5,16 +5,27 @@ Reporter Agent is responsible for reporting analyzed calculations.
 """
 
 # Import dependencies
-from utils.llm_utils import OllamaLLM
+from core.providers.factory import create_llm_provider
+from core.providers.llm.base import LLMProvider
 
 class ReporterAgent:
-    def __init__(self, model="mistral"):
-        self.llm = OllamaLLM(model)
+    def __init__(self, model="mistral", domain_config=None, llm_provider: LLMProvider = None):
+        self.domain_config = domain_config or {}
+        provider_cfg = dict(self.domain_config.get("providers", {}).get("llm", {}))
+        if not provider_cfg:
+            provider_cfg = {"type": "ollama", "model": model}
+        elif "model" not in provider_cfg:
+            provider_cfg["model"] = model
+        self.llm = llm_provider or create_llm_provider(provider_cfg)
+        self.report_system_prompt = self.domain_config.get("prompts", {}).get(
+            "report_system_prompt",
+            "You are an expert analyst. Summarize results clearly for a general audience.",
+        )
 
     def report(self, user_question, analysis_results):
         """Use an LLM to summarize the analysis results in a human-readable format."""
         prompt = f"""
-        You are a expert in infectious disease modeling and are being asked to generate a report, outlining the results of an SIR model.
+        You are asked to generate a report from analysis results.
 
         The user asked: "{user_question}"
 
@@ -26,4 +37,4 @@ class ReporterAgent:
         If any values are missing, simply note that you couldn't determine the results.
         """
 
-        return self.llm.generate(prompt)
+        return self.llm.generate(prompt=prompt, system=self.report_system_prompt)

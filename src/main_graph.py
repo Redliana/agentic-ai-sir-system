@@ -13,12 +13,6 @@ from core.orchestration.router import load_graph_config
 from core.registry.domain_loader import load_active_domain
 from core.orchestration.state import State
 
-# Initialize agents
-interface = UIAgent()
-runner = ModelAgent()
-rag = RAGAgent()
-reporter = ReporterAgent()
-
 DEFAULT_PARAMS = {
     "seed": 42,
     "num_runs": 100,
@@ -37,6 +31,12 @@ LOG_PATH_CANDIDATES = DOMAIN_CONFIG.get("analysis", {}).get(
     "log_path_candidates",
     ["src/logs/all_agent_logs.csv", "logs/all_agent_logs.csv"],
 )
+
+# Initialize agents
+interface = UIAgent(domain_config=DOMAIN_CONFIG)
+runner = ModelAgent(domain_config=DOMAIN_CONFIG)
+rag = RAGAgent(domain_config=DOMAIN_CONFIG)
+reporter = ReporterAgent(domain_config=DOMAIN_CONFIG)
 
 
 def _resolve_logs_path() -> str:
@@ -73,7 +73,7 @@ def analyze_node(state: State):
         return state
 
     question = state["user_question"]
-    analyzer = AnalyzerAgent(state_logs=logs_path)
+    analyzer = AnalyzerAgent(state_logs=logs_path, domain_config=DOMAIN_CONFIG)
     state["analysis_result"] = analyzer.analyze(question)
     return state
 
@@ -98,10 +98,7 @@ def ask_assumption_question_node(state: State):
 
 
 def fallback_node(state: State):
-    print(
-        "\n[UI Agent]: Sorry, I didn't understand that. Try asking to run a model, "
-        "analyze results, or about how the model works."
-    )
+    print(f"\n[UI Agent]: {interface.get_fallback_message()}")
     return state
 
 

@@ -14,108 +14,135 @@ UI Agent is responsible for:
 """
 
 # Import libraries
+from typing import Dict, List
+
 import yaml
 # Import dependencies
-from utils.llm_utils import OllamaLLM
+from core.providers.factory import create_llm_provider
+from core.providers.llm.base import LLMProvider
 
 
 class UIAgent:
     def __init__(
-            self, 
-            model="mistral", 
-            test_mode=False, 
-            params_file="params.yaml"
+            self,
+            model="mistral",
+            test_mode=False,
+            params_file="params.yaml",
+            domain_config=None,
+            llm_provider: LLMProvider = None,
         ):
-        self.llm = OllamaLLM(model)
+        provider_cfg = dict((domain_config or {}).get("providers", {}).get("llm", {}))
+        if not provider_cfg:
+            provider_cfg = {"type": "ollama", "model": model}
+        elif "model" not in provider_cfg:
+            provider_cfg["model"] = model
+
+        self.llm = llm_provider or create_llm_provider(provider_cfg)
         self.test_mode = test_mode
         self.params_file = params_file
         self.params = self.load_params()
-    
+        self.domain_config = domain_config or {}
+        self.ui_config = self.domain_config.get("ui", {})
+        self.allowed_intents = self.domain_config.get(
+            "intents", ["run", "analyze", "learn", "exit", "unknown"]
+        )
+        self.keyword_rules = self.ui_config.get("keyword_rules", {})
+
     def get_user_input(self):
-        print("\n[UI Agent]: Hello I am a Virtual Interface Agent, how can I help you today?")
-        user_input = input("[UI Agent]: You can request to run a series of simulations, analyze data, or learn about model assumptions and/or infectious disease spread\n>").lower()
+        greeting = self.ui_config.get(
+            "greeting",
+            "Hello I am a Virtual Interface Agent, how can I help you today?",
+        )
+        input_prompt = self.ui_config.get(
+            "input_prompt",
+            "You can request to run a series of simulations, analyze data, or learn about model assumptions and/or infectious disease spread",
+        )
+        print(f"\n[UI Agent]: {greeting}")
+        user_input = input(f"[UI Agent]: {input_prompt}\n>").lower()
         return user_input
+
+    def _keyword_classification(self, text: str) -> str:
+        text_lower = text.lower()
+        for intent, keywords in self.keyword_rules.items():
+            for keyword in keywords:
+                if keyword.lower() in text_lower:
+                    return intent
+        return "unknown"
+
+    def _build_intent_prompt(self, text: str, include_followup: bool = False) -> str:
+        intent_labels: Dict[str, str] = self.ui_config.get("intent_labels", {})
+        options: List[str] = []
+        for intent in self.allowed_intents:
+            label = intent_labels.get(intent, intent)
+            options.append(f"- '{intent}': {label}")
+        options_text = "\n".join(options)
+        context = "follow-up message" if include_followup else "message"
+
+        prompt = f"""
+        You are an assistant AI agent.
+        Determine the user's intent from the following {context}:
+
+        "{text}"
+
+        Allowed intents:
+        {options_text}
+
+        Return exactly one intent label.
+        """
+
+        return prompt
 
     def classify_intent(self, user_input: str) -> str:
         """Classifies the intent of the user prompt."""
-        prompt = f"""
-        You are a assistant AI Agent, tasked with the goal of answer user questions in an empathetic and professional manner.
-        You must determine the users needs based on their input message. 
-        A user has entered the following message:
+        keyword_intent = self._keyword_classification(user_input)
+        if keyword_intent in self.allowed_intents and keyword_intent != "unknown":
+            return keyword_intent
 
-        "{user_input}"
+        if self.test_mode:
+            return keyword_intent
 
-        Determine whether the user is trying to:
-        - 'run' a simulation
-        - 'analyze' the results
-        - 'learn' about model 'assumptions'
-        - 'learn' about infectious disease spread
-        - 'learn' about the history of infectious disease models
-        - 'exit' the model
-        - or something else
-
-        If the user message is unclear, please prompt them to try another request.
-        Your goal is to educate and expand understanding so please present your language in a way that aligns with this goal.
-
-        Respond with only one word: 'run', 'analyze', 'exit', 'learn', or 'unknown'.
-        """
-        intent = self.llm.generate(prompt).strip().lower()
-        if intent in ["run", "analyze", "learn", "model"]:
+        intent = self.llm.generate(self._build_intent_prompt(user_input)).strip().lower()
+        if intent in self.allowed_intents:
             return intent
-        elif "run" in user_input.lower():
-            return "run"
-        elif "analyze" in user_input.lower():
-            return "analyze"
-        elif any(keyword in user_input.lower() for keyword in ["learn about model", "assumptions", "parameters", "how does", "how does the model", "explain the model"]):
-            return "learn"
-        elif "exit" in user_input.lower():
-            return "exit"
-        return "unknown"
+        return keyword_intent
 
     def ask_analysis_question(self) -> str:
         """Prompt the user for a specific analysis question."""
-        return input("\n[UI Agent]: Sure, I can help with that. What would you like to know?\n> ")
+        analysis_prompt = self.ui_config.get(
+            "analysis_prompt", "Sure, I can help with that. What would you like to know?"
+        )
+        return input(f"\n[UI Agent]: {analysis_prompt}\n> ")
 
     def follow_up(self):
         """Conditional edge function for directing user follow-up questions."""
-        user_follow_up = input(f"\n[UI Agent]: Is there anything else I can help you with?\n> ")
+        follow_up_prompt = self.ui_config.get(
+            "follow_up_prompt", "Is there anything else I can help you with?"
+        )
+        user_follow_up = input(f"\n[UI Agent]: {follow_up_prompt}\n> ")
         return user_follow_up
-    
+
     def classify_followup(self, follow_up: str) -> str:
         """Classify the user's follow-up response. Used after the system asks: 'Is there anything else I can help you with?'"""
-        prompt = f"""
-        You are a assistant AI Agent, tasked with the goal of answer user questions in an empathetic and professional manner.
-        You must determine the users needs based on their input message. 
-        A user has entered the following message:
+        keyword_intent = self._keyword_classification(follow_up)
+        if keyword_intent in self.allowed_intents and keyword_intent != "unknown":
+            return keyword_intent
 
-        "{follow_up}"
+        if self.test_mode:
+            return keyword_intent
 
-        Determine whether the user is trying to:
-        - 'run' a simulation
-        - 'analyze' the results
-        - 'learn' about model 'assumptions'
-        - 'exit' the model
-        - or something else
-
-        If the user message is unclear, please prompt them to try another request.
-        Your goal is to educate and expand understanding so please present your language in a way that aligns with this goal.
-
-        Respond with only one word: 'run', 'analyze', 'exit', 'learn', or 'unknown'.
-        """
-        
-        followup_intent = self.llm.generate(prompt).strip().lower()
-        if followup_intent in ["run", "analyze", "learn", "model"]:
+        followup_intent = self.llm.generate(
+            self._build_intent_prompt(follow_up, include_followup=True)
+        ).strip().lower()
+        if followup_intent in self.allowed_intents:
             return followup_intent
-        elif "run" in follow_up.lower():
-            return "run"
-        elif "analyze" in follow_up.lower():
-            return "analyze"
-        elif any(keyword in follow_up.lower() for keyword in ["learn about model", "assumptions", "parameters", "how does", "how does the model", "explain the model"]):
-            return "learn"
-        elif "exit" in follow_up.lower():
-            return "exit"
-        return "unknown"
-    
+        return keyword_intent
+
+    def get_fallback_message(self) -> str:
+        return self.ui_config.get(
+            "fallback_message",
+            "Sorry, I didn't understand that. Try another request.",
+        )
+
     def load_params(self):
         """Load the parameters from YAML file if they exist."""
         try:

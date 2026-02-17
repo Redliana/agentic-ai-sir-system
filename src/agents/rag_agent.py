@@ -8,38 +8,47 @@ RAG agent is responsible for:
 """
 
 # Import libraries
-import json as std_json
 import numpy as np
 # Import dependencies
-from utils.argo_utils import run_chat, run_embeddings, run_search
+from core.providers.factory import create_vector_provider
+from core.providers.vector.base import VectorProvider
 
 class RAGAgent:
     def __init__(
         self,
+        domain_config=None,
         collection_name="sir_collections",
         output_fields=["page_content"],
-        limit=5
+        limit=5,
+        vector_provider: VectorProvider = None,
     ):
+        self.domain_config = domain_config or {}
         self.collection_name = collection_name
         self.output_fields = output_fields
         self.limit = limit
 
-        self.embedding_model = "v3large"
-        self.chat_model = "gpt4o"
+        provider_cfg = dict(
+            self.domain_config.get("providers", {}).get("vector", {"type": "argo_milvus"})
+        )
+        self.vector_provider = vector_provider or create_vector_provider(provider_cfg)
 
-        self.instructions = """
-        You are an expert infectious disease AI agent, tasked with the responsibility of analyzing epidemic simulation data.
-        Use the following context to answer the user's question.
+        rag_cfg = self.domain_config.get("rag", {})
+        self.embedding_model = rag_cfg.get("embedding_model", "v3large")
+        self.chat_model = rag_cfg.get("chat_model", "gpt4o")
 
-        Please answer in a concise and friendly manner, as if you were speaking to a general audience.
-        Your goal is to educate and expand understanding, so keep it clear, engaging, and smart.
-        """
+        self.instructions = self.domain_config.get("prompts", {}).get(
+            "rag_system_prompt",
+            (
+                "You are a domain expert agent. Use provided context to answer the question "
+                "clearly and concisely for a general audience."
+            ),
+        )
 
     def generate_embeddings(self, text: str):
         """Generate embeddings using Argo API."""
 
         print(f"[DEBUG] Generating embeddings for input: {text}")
-        embeddings = run_embeddings(model=self.embedding_model, prompts=[text])
+        embeddings = self.vector_provider.embed(model=self.embedding_model, prompts=[text])
 
         # Normalize expected structure
         if isinstance(embeddings, dict) and "embedding" in embeddings:
@@ -58,17 +67,15 @@ class RAGAgent:
         vector = np.array(vector, dtype=np.float32).tolist()
         print(f"[DEBUG] Searching Milvus with vector of dim: {len(vector)}")
 
-        results = run_search(
+        results = self.vector_provider.search(
             collection=self.collection_name,
-            data=vector,
+            vector=vector,
             output_fields=self.output_fields,
-            limit=self.limit
+            limit=self.limit,
         )
 
         if results and "data" in results:
             return [r.get("text_content") for r in results["data"] if r.get("text_content")]
-            print(f"[DEBUG] Retrieved {len(docs)} document(s)")
-            return docs
         else:
             raise ValueError(f"[ERROR] Failed to retrieve documents. Got: {results}")
 
@@ -77,10 +84,10 @@ class RAGAgent:
         prompt = f"Context:\n{context}\n\nQuestion:\n{question}"
         print(f"[DEBUG] Sending prompt to chat model...")
 
-        response = run_chat(
+        response = self.vector_provider.chat(
             instructions=self.instructions,
             model=self.chat_model,
-            prompt=prompt
+            prompt=prompt,
         )
 
         if response:
