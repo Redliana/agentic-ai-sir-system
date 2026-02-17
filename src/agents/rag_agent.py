@@ -18,21 +18,26 @@ class RAGAgent:
         self,
         domain_config=None,
         collection_name="sir_collections",
-        output_fields=["page_content"],
+        output_fields=None,
         limit=5,
         vector_provider: VectorProvider = None,
     ):
         self.domain_config = domain_config or {}
-        self.collection_name = collection_name
-        self.output_fields = output_fields
-        self.limit = limit
+        rag_cfg = self.domain_config.get("rag", {})
+        self.collection_name = rag_cfg.get("collection_name", collection_name)
+        self.output_fields = rag_cfg.get("output_fields", output_fields or ["text_content"])
+        self.result_text_field = rag_cfg.get("result_text_field", "text_content")
+        self.limit = rag_cfg.get("limit", limit)
+        self.no_context_fallback = rag_cfg.get(
+            "no_context_fallback",
+            "I couldn't retrieve supporting context for that request. Please try rephrasing your question.",
+        )
 
         provider_cfg = dict(
             self.domain_config.get("providers", {}).get("vector", {"type": "argo_milvus"})
         )
         self.vector_provider = vector_provider or create_vector_provider(provider_cfg)
 
-        rag_cfg = self.domain_config.get("rag", {})
         self.embedding_model = rag_cfg.get("embedding_model", "v3large")
         self.chat_model = rag_cfg.get("chat_model", "gpt4o")
 
@@ -74,10 +79,26 @@ class RAGAgent:
             limit=self.limit,
         )
 
-        if results and "data" in results:
-            return [r.get("text_content") for r in results["data"] if r.get("text_content")]
-        else:
+        if not results or "data" not in results:
             raise ValueError(f"[ERROR] Failed to retrieve documents. Got: {results}")
+
+        docs = []
+        for row in results["data"]:
+            text = row.get(self.result_text_field)
+            if not text:
+                for fallback_key in ["text_content", "page_content", "content", "text"]:
+                    if row.get(fallback_key):
+                        text = row.get(fallback_key)
+                        break
+            if not text:
+                for value in row.values():
+                    if isinstance(value, str) and value.strip():
+                        text = value
+                        break
+            if text:
+                docs.append(text)
+
+        return docs
 
     def generate_response(self, context: str, question: str):
         """Generate natural language answer using Argo chat API."""
@@ -105,6 +126,8 @@ class RAGAgent:
 
         # Step 2: Retrieve relevant chunks
         retrieved_docs = self.search_documents(question_embeddings)
+        if not retrieved_docs:
+            return self.no_context_fallback
 
         # Step 3: Build context
         context = "\n---\n".join(retrieved_docs)

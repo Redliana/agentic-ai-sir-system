@@ -121,3 +121,6 @@ prompts:
 rag:
   embedding_model: v3large
   chat_model: gpt4o
+  output_fields: ["text_content"]
+  result_text_field: text_content
+  no_context_fallback: "I couldn't find enough supporting context to answer that yet. Please try asking with more detail."
